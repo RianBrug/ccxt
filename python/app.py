@@ -5,6 +5,7 @@ import sys
 import time
 from datetime import datetime
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # -----------------------------------------------------------------------------
 
@@ -13,7 +14,7 @@ sys.path.append(root + '/python')
 
 # -----------------------------------------------------------------------------
 
-import ccxt  # noqa: E402
+import ccxt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 # -----------------------------------------------------------------------------
@@ -33,7 +34,7 @@ exchange = ccxt.binance({
 
 # -----------------------------------------------------------------------------
 
-from_datetime = '2021-04-21 00:00:00'
+from_datetime = '2021-04-22 00:00:00'
 from_timestamp = exchange.parse8601(from_datetime)
 
 # -----------------------------------------------------------------------------
@@ -79,16 +80,18 @@ for candle in data:
     volume_data.append(candle[5])
 
 # Create figure with secondary y-axis
-# fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig = make_subplots(specs=[[{"secondary_y": True}]])
 
 
 # plot the candlesticks
-fig = go.Figure(data=[go.Candlestick(x=dates,
+fig.add_trace(go.Candlestick(x=dates,
                        open=open_data, high=high_data,
-                       low=low_data, close=close_data)])
+                       low=low_data, close=close_data),
+                       secondary_y=True)
 
-# fig.add_trace(go.Bar(x=dates.append(datetime.fromtimestamp(candle[0] / 1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')),
-                # y=volume_data.append(candle[5])), secondary_y=False)
+# include a go.Bar trace for volumes
+fig.add_trace(go.Bar(x=dates, y=volume_data),
+                secondary_y=False)
 
 # fig.update_layout(
 #     title='BUSD/USDT - Binance',
@@ -100,5 +103,5 @@ fig = go.Figure(data=[go.Candlestick(x=dates,
 #         x='2016-12-09', y=0.05, xref='x', yref='paper',
 #         showarrow=False, xanchor='left', text='Increase Period Begins')]
 # )
-
+fig.layout.yaxis2.showgrid=False
 fig.show()
