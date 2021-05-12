@@ -168,7 +168,7 @@ class latoken extends Exchange {
             $quote = $this->safe_currency_code($quoteId);
             $symbol = $base . '/' . $quote;
             $pricePrecisionString = $this->safe_string($market, 'pricePrecision');
-            $priceLimit = ($pricePrecisionString === null) ? null : '1e-' . $pricePrecisionString;
+            $priceLimit = $this->parse_precision($pricePrecisionString);
             $precision = array(
                 'price' => intval($pricePrecisionString),
                 'amount' => $this->safe_integer($market, 'amountPrecision'),
@@ -269,6 +269,8 @@ class latoken extends Exchange {
         //
         $result = array(
             'info' => $response,
+            'timestamp' => null,
+            'datetime' => null,
         );
         for ($i = 0; $i < count($response); $i++) {
             $balance = $response[$i];
@@ -309,7 +311,7 @@ class latoken extends Exchange {
         //         )
         //     }
         //
-        return $this->parse_order_book($response, null, 'bids', 'asks', 'price', 'quantity');
+        return $this->parse_order_book($response, $symbol, null, 'bids', 'asks', 'price', 'quantity');
     }
 
     public function parse_ticker($ticker, $market = null) {

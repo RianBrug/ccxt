@@ -145,6 +145,7 @@ class lykke extends Exchange {
                 ),
             ),
             'commonCurrencies' => array(
+                'CAN' => 'CanYaCoin',
                 'XPD' => 'Lykke XPD',
             ),
         ));
@@ -361,7 +362,7 @@ class lykke extends Exchange {
             $quote = $this->safe_currency_code($quoteId);
             $symbol = $base . '/' . $quote;
             $pricePrecision = $this->safe_string($market, 'Accuracy');
-            $priceLimit = ($pricePrecision === null) ? null : '1e-' . $pricePrecision;
+            $priceLimit = $this->parse_precision($pricePrecision);
             $precision = array(
                 'price' => intval($pricePrecision),
                 'amount' => $this->safe_integer($market, 'InvertedAccuracy'),
@@ -569,7 +570,7 @@ class lykke extends Exchange {
             $sideTimestamp = $this->parse8601($side['Timestamp']);
             $timestamp = ($timestamp === null) ? $sideTimestamp : max ($timestamp, $sideTimestamp);
         }
-        return $this->parse_order_book($orderbook, $timestamp, 'bids', 'asks', 'Price', 'Volume');
+        return $this->parse_order_book($orderbook, $symbol, $timestamp, 'bids', 'asks', 'Price', 'Volume');
     }
 
     public function parse_bid_ask($bidask, $priceKey = 0, $amountKey = 1) {

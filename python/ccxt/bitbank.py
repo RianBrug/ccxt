@@ -154,7 +154,7 @@ class bitbank(Exchange):
             maker = self.safe_number(entry, 'maker_fee_rate_quote')
             taker = self.safe_number(entry, 'taker_fee_rate_quote')
             pricePrecisionString = self.safe_string(entry, 'price_digits')
-            priceLimit = None if (pricePrecisionString is None) else '1e-' + pricePrecisionString
+            priceLimit = self.parse_precision(pricePrecisionString)
             precision = {
                 'price': int(pricePrecisionString),
                 'amount': self.safe_integer(entry, 'amount_digits'),
@@ -239,7 +239,7 @@ class bitbank(Exchange):
         response = self.publicGetPairDepth(self.extend(request, params))
         orderbook = self.safe_value(response, 'data', {})
         timestamp = self.safe_integer(orderbook, 'timestamp')
-        return self.parse_order_book(orderbook, timestamp)
+        return self.parse_order_book(orderbook, symbol, timestamp)
 
     def parse_trade(self, trade, market=None):
         timestamp = self.safe_integer(trade, 'executed_at')
@@ -351,7 +351,44 @@ class bitbank(Exchange):
     def fetch_balance(self, params={}):
         self.load_markets()
         response = self.privateGetUserAssets(params)
-        result = {'info': response}
+        #
+        #     {
+        #       "success": "1",
+        #       "data": {
+        #         "assets": [
+        #           {
+        #             "asset": "jpy",
+        #             "amount_precision": "4",
+        #             "onhand_amount": "0.0000",
+        #             "locked_amount": "0.0000",
+        #             "free_amount": "0.0000",
+        #             "stop_deposit": False,
+        #             "stop_withdrawal": False,
+        #             "withdrawal_fee": {
+        #               "threshold": "30000.0000",
+        #               "under": "550.0000",
+        #               "over": "770.0000"
+        #             }
+        #           },
+        #           {
+        #             "asset": "btc",
+        #             "amount_precision": "8",
+        #             "onhand_amount": "0.00000000",
+        #             "locked_amount": "0.00000000",
+        #             "free_amount": "0.00000000",
+        #             "stop_deposit": False,
+        #             "stop_withdrawal": False,
+        #             "withdrawal_fee": "0.00060000"
+        #           },
+        #         ]
+        #       }
+        #     }
+        #
+        result = {
+            'info': response,
+            'timestamp': None,
+            'datetime': None,
+        }
         data = self.safe_value(response, 'data', {})
         assets = self.safe_value(data, 'assets', [])
         for i in range(0, len(assets)):

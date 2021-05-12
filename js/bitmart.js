@@ -934,9 +934,9 @@ module.exports = class bitmart extends Exchange {
         //
         const data = this.safeValue (response, 'data', {});
         if (market['spot']) {
-            return this.parseOrderBook (data, undefined, 'buys', 'sells', 'price', 'amount');
+            return this.parseOrderBook (data, symbol, undefined, 'buys', 'sells', 'price', 'amount');
         } else if (market['swap'] || market['future']) {
-            return this.parseOrderBook (data, undefined, 'buys', 'sells', 'price', 'vol');
+            return this.parseOrderBook (data, symbol, undefined, 'buys', 'sells', 'price', 'vol');
         }
     }
 
@@ -1470,7 +1470,7 @@ module.exports = class bitmart extends Exchange {
         for (let i = 0; i < wallet.length; i++) {
             const balance = wallet[i];
             let currencyId = this.safeString2 (balance, 'id', 'currency');
-            currencyId = this.safeString (balance, 'coind_code', currencyId);
+            currencyId = this.safeString (balance, 'coin_code', currencyId);
             const code = this.safeCurrencyCode (currencyId);
             const account = this.account ();
             account['free'] = this.safeString2 (balance, 'available', 'available_vol');

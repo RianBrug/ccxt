@@ -738,8 +738,9 @@ class phemex(Exchange):
             amount,
         ]
 
-    def parse_order_book(self, orderbook, timestamp=None, bidsKey='bids', asksKey='asks', priceKey=0, amountKey=1, market=None):
+    def parse_order_book(self, orderbook, symbol, timestamp=None, bidsKey='bids', asksKey='asks', priceKey=0, amountKey=1, market=None):
         result = {
+            'symbol': symbol,
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
             'nonce': None,
@@ -792,7 +793,7 @@ class phemex(Exchange):
         result = self.safe_value(response, 'result', {})
         book = self.safe_value(result, 'book', {})
         timestamp = self.safe_integer_product(result, 'timestamp', 0.000001)
-        orderbook = self.parse_order_book(book, timestamp, 'bids', 'asks', 0, 1, market)
+        orderbook = self.parse_order_book(book, symbol, timestamp, 'bids', 'asks', 0, 1, market)
         orderbook['nonce'] = self.safe_integer(result, 'sequence')
         return orderbook
 
@@ -1240,6 +1241,7 @@ class phemex(Exchange):
         #         ]
         #     }
         #
+        timestamp = None
         result = {'info': response}
         data = self.safe_value(response, 'data', [])
         for i in range(0, len(data)):
@@ -1256,9 +1258,13 @@ class phemex(Exchange):
             lockedTradingBalance = self.from_en(lockedTradingBalanceEv, scale, scale, DECIMAL_PLACES)
             lockedWithdraw = self.from_en(lockedWithdrawEv, scale, scale, DECIMAL_PLACES)
             used = self.sum(lockedTradingBalance, lockedWithdraw)
+            lastUpdateTimeNs = self.safe_integer_product(balance, 'lastUpdateTimeNs', 0.000001)
+            timestamp = lastUpdateTimeNs if (timestamp is None) else max(timestamp, lastUpdateTimeNs)
             account['total'] = total
             account['used'] = used
             result[code] = account
+        result['timestamp'] = timestamp
+        result['datetime'] = self.iso8601(timestamp)
         return self.parse_balance(result)
 
     def parse_swap_balance(self, response):

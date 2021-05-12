@@ -55,7 +55,7 @@ module.exports = class Exchange {
             'id': undefined,
             'name': undefined,
             'countries': undefined,
-            'enableRateLimit': false,
+            'enableRateLimit': true,
             'rateLimit': 2000, // milliseconds = seconds * 1000
             'certified': false,
             'pro': false,
@@ -819,6 +819,20 @@ module.exports = class Exchange {
         throw new NotSupported (this.id + ' fetchWithdrawals not supported yet');
     }
 
+    async fetchDepositAddress (code, params = {}) {
+        if (this.has['fetchDepositAddresses']) {
+            const depositAddresses = await this.fetchDepositAddresses ([ code ], params);
+            const depositAddress = this.safeValue (depositAddresses, code);
+            if (depositAddress === undefined) {
+                throw new InvalidAddress (this.id + ' fetchDepositAddress could not find a deposit address for ' + code + ', make sure you have created a corresponding deposit address in your wallet on the exchange website');
+            } else {
+                return depositAddress;
+            }
+        } else {
+            throw new NotSupported (this.id + ' fetchDepositAddress not supported yet');
+        }
+    }
+
     fetchCurrencies (params = {}) {
         // markets are returned as a list
         // currencies are returned as a dict
@@ -945,8 +959,9 @@ module.exports = class Exchange {
         })
     }
 
-    parseOrderBook (orderbook, timestamp = undefined, bidsKey = 'bids', asksKey = 'asks', priceKey = 0, amountKey = 1) {
+    parseOrderBook (orderbook, symbol, timestamp = undefined, bidsKey = 'bids', asksKey = 'asks', priceKey = 0, amountKey = 1) {
         return {
+            'symbol': symbol,
             'bids': sortBy ((bidsKey in orderbook) ? this.parseBidsAsks (orderbook[bidsKey], priceKey, amountKey) : [], 0, true),
             'asks': sortBy ((asksKey in orderbook) ? this.parseBidsAsks (orderbook[asksKey], priceKey, amountKey) : [], 0),
             'timestamp': timestamp,
@@ -957,7 +972,7 @@ module.exports = class Exchange {
 
     parseBalance (balance, legacy = true) {
 
-        const codes = Object.keys (this.omit (balance, [ 'info', 'free', 'used', 'total' ]));
+        const codes = Object.keys (this.omit (balance, [ 'info', 'timestamp', 'datetime', 'free', 'used', 'total' ]));
 
         balance['free'] = {}
         balance['used'] = {}
@@ -1142,10 +1157,11 @@ module.exports = class Exchange {
         return ticker;
     }
 
-    parseTickers (tickers, symbols = undefined) {
+    parseTickers (tickers, symbols = undefined, params = {}) {
         const result = [];
-        for (let i = 0; i < tickers.length; i++) {
-            result.push (this.parseTicker (tickers[i]));
+        const values = Object.values (tickers || []);
+        for (let i = 0; i < values.length; i++) {
+            result.push (this.extend (this.parseTicker (values[i]), params));
         }
         return this.filterByArray (result, 'symbol', symbols);
     }
@@ -1416,26 +1432,6 @@ module.exports = class Exchange {
 
     checkRequiredDependencies () {
         return
-    }
-
-    soliditySha3 (array) {
-        // we only support address, uint256, and string solidity types
-        const encoded = []
-        for (let i = 0; i < array.length; i++) {
-            const value = array[i]
-            if (Number.isInteger (value) || value.match (/^[0-9]+$/)) {
-                encoded.push (this.numberToBE (this.numberToString (value), 32))
-            } else {
-                const noPrefix = this.remove0xPrefix (value)
-                if (noPrefix.length === 40 && noPrefix.toLowerCase ().match (/^[0-9a-f]+$/)) { // check if it is an address
-                    encoded.push (this.base16ToBinary (noPrefix))
-                } else {
-                    encoded.push (this.stringToBinary (noPrefix))
-                }
-            }
-        }
-        const concated = this.binaryConcatArray (encoded)
-        return '0x' + this.hash (concated, 'keccak', 'hex')
     }
 
     remove0xPrefix (hexData) {

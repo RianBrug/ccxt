@@ -303,7 +303,11 @@ class vcc extends Exchange {
         //     }
         //
         $data = $this->safe_value($response, 'data');
-        $result = array( 'info' => $response );
+        $result = array(
+            'info' => $response,
+            'timestamp' => null,
+            'datetime' => null,
+        );
         $currencyIds = is_array($data) ? array_keys($data) : array();
         for ($i = 0; $i < count($currencyIds); $i++) {
             $currencyId = $currencyIds[$i];
@@ -407,7 +411,7 @@ class vcc extends Exchange {
         //
         $data = $this->safe_value($response, 'data');
         $timestamp = $this->safe_value($data, 'timestamp');
-        return $this->parse_order_book($data, $timestamp, 'bids', 'asks', 0, 1);
+        return $this->parse_order_book($data, $symbol, $timestamp, 'bids', 'asks', 0, 1);
     }
 
     public function parse_ticker($ticker, $market = null) {

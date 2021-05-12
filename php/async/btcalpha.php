@@ -139,7 +139,7 @@ class btcalpha extends Exchange {
             $quote = $this->safe_currency_code($quoteId);
             $symbol = $base . '/' . $quote;
             $pricePrecision = $this->safe_string($market, 'price_precision');
-            $priceLimit = ($pricePrecision === null) ? null : '1e-' . $pricePrecision;
+            $priceLimit = $this->parse_precision($pricePrecision);
             $precision = array(
                 'amount' => 8,
                 'price' => intval($pricePrecision),
@@ -184,7 +184,7 @@ class btcalpha extends Exchange {
             $request['limit_buy'] = $limit;
         }
         $response = yield $this->publicGetOrderbookPairName (array_merge($request, $params));
-        return $this->parse_order_book($response, null, 'buy', 'sell', 'price', 'amount');
+        return $this->parse_order_book($response, $symbol, null, 'buy', 'sell', 'price', 'amount');
     }
 
     public function parse_bids_asks($bidasks, $priceKey = 0, $amountKey = 1) {

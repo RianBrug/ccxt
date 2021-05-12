@@ -170,7 +170,7 @@ class latoken(Exchange):
             quote = self.safe_currency_code(quoteId)
             symbol = base + '/' + quote
             pricePrecisionString = self.safe_string(market, 'pricePrecision')
-            priceLimit = None if (pricePrecisionString is None) else '1e-' + pricePrecisionString
+            priceLimit = self.parse_precision(pricePrecisionString)
             precision = {
                 'price': int(pricePrecisionString),
                 'amount': self.safe_integer(market, 'amountPrecision'),
@@ -267,6 +267,8 @@ class latoken(Exchange):
         #
         result = {
             'info': response,
+            'timestamp': None,
+            'datetime': None,
         }
         for i in range(0, len(response)):
             balance = response[i]
@@ -304,7 +306,7 @@ class latoken(Exchange):
         #         ]
         #     }
         #
-        return self.parse_order_book(response, None, 'bids', 'asks', 'price', 'quantity')
+        return self.parse_order_book(response, symbol, None, 'bids', 'asks', 'price', 'quantity')
 
     def parse_ticker(self, ticker, market=None):
         #

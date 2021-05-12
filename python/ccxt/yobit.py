@@ -134,6 +134,7 @@ class yobit(Exchange):
                 'ESC': 'EdwardSnowden',
                 'EUROPE': 'EUROP',
                 'EXT': 'LifeExtension',
+                'FUND': 'FUNDChains',
                 'FUNK': 'FUNKCoin',
                 'GCC': 'GlobalCryptocurrency',
                 'GEN': 'Genstake',
@@ -154,6 +155,7 @@ class yobit(Exchange):
                 'LOCX': 'LOC',
                 'LUNYR': 'LUN',
                 'LUN': 'LunarCoin',  # they just change the ticker if it is already taken
+                'LUNA': 'Luna Coin',
                 'MASK': 'Yobit MASK',
                 'MDT': 'Midnight',
                 'MIS': 'MIScoin',
@@ -250,7 +252,12 @@ class yobit(Exchange):
         #     }
         #
         balances = self.safe_value(response, 'return', {})
-        result = {'info': response}
+        timestamp = self.safe_integer(balances, 'server_time')
+        result = {
+            'info': response,
+            'timestamp': timestamp,
+            'datetime': self.iso8601(timestamp),
+        }
         free = self.safe_value(balances, 'funds', {})
         total = self.safe_value(balances, 'funds_incl_orders', {})
         currencyIds = list(self.extend(free, total).keys())
@@ -351,7 +358,7 @@ class yobit(Exchange):
         if not market_id_in_reponse:
             raise ExchangeError(self.id + ' ' + market['symbol'] + ' order book is empty or not available')
         orderbook = response[market['id']]
-        return self.parse_order_book(orderbook)
+        return self.parse_order_book(orderbook, symbol)
 
     def fetch_order_books(self, symbols=None, limit=None, params={}):
         self.load_markets()

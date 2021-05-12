@@ -154,8 +154,8 @@ module.exports = class rightbtc extends Exchange {
             const symbol = base + '/' + quote;
             const amountPrecision = this.safeString (market, 'bid_asset_decimals');
             const pricePrecision = this.safeString (market, 'ask_asset_decimals');
-            const amountLimit = (amountPrecision === undefined) ? undefined : '1e-' + amountPrecision;
-            const priceLimit = (pricePrecision === undefined) ? undefined : '1e-' + pricePrecision;
+            const amountLimit = this.parsePrecision (amountPrecision);
+            const priceLimit = this.parsePrecision (pricePrecision);
             const precision = {
                 'amount': parseInt (amountPrecision),
                 'price': parseInt (pricePrecision),
@@ -287,7 +287,7 @@ module.exports = class rightbtc extends Exchange {
                 ]);
             }
         }
-        return this.parseOrderBook (bidsasks, undefined, 'bid', 'ask');
+        return this.parseOrderBook (bidsasks, symbol, undefined, 'bid', 'ask');
     }
 
     parseTrade (trade, market = undefined) {

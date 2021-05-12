@@ -306,7 +306,11 @@ class vcc(Exchange):
         #     }
         #
         data = self.safe_value(response, 'data')
-        result = {'info': response}
+        result = {
+            'info': response,
+            'timestamp': None,
+            'datetime': None,
+        }
         currencyIds = list(data.keys())
         for i in range(0, len(currencyIds)):
             currencyId = currencyIds[i]
@@ -403,7 +407,7 @@ class vcc(Exchange):
         #
         data = self.safe_value(response, 'data')
         timestamp = self.safe_value(data, 'timestamp')
-        return self.parse_order_book(data, timestamp, 'bids', 'asks', 0, 1)
+        return self.parse_order_book(data, symbol, timestamp, 'bids', 'asks', 0, 1)
 
     def parse_ticker(self, ticker, market=None):
         #

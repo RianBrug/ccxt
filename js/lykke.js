@@ -143,6 +143,7 @@ module.exports = class lykke extends Exchange {
                 },
             },
             'commonCurrencies': {
+                'CAN': 'CanYaCoin',
                 'XPD': 'Lykke XPD',
             },
         });
@@ -359,7 +360,7 @@ module.exports = class lykke extends Exchange {
             const quote = this.safeCurrencyCode (quoteId);
             const symbol = base + '/' + quote;
             const pricePrecision = this.safeString (market, 'Accuracy');
-            const priceLimit = (pricePrecision === undefined) ? undefined : '1e-' + pricePrecision;
+            const priceLimit = this.parsePrecision (pricePrecision);
             const precision = {
                 'price': parseInt (pricePrecision),
                 'amount': this.safeInteger (market, 'InvertedAccuracy'),
@@ -567,7 +568,7 @@ module.exports = class lykke extends Exchange {
             const sideTimestamp = this.parse8601 (side['Timestamp']);
             timestamp = (timestamp === undefined) ? sideTimestamp : Math.max (timestamp, sideTimestamp);
         }
-        return this.parseOrderBook (orderbook, timestamp, 'bids', 'asks', 'Price', 'Volume');
+        return this.parseOrderBook (orderbook, symbol, timestamp, 'bids', 'asks', 'Price', 'Volume');
     }
 
     parseBidAsk (bidask, priceKey = 0, amountKey = 1) {

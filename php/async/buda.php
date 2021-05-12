@@ -181,23 +181,26 @@ class buda extends Exchange {
             $baseInfo = yield $this->fetch_currency_info($baseId, $currencies);
             $quoteInfo = yield $this->fetch_currency_info($quoteId, $currencies);
             $symbol = $base . '/' . $quote;
+            $pricePrecisionString = $this->safe_string($quoteInfo, 'input_decimals');
+            $priceLimit = $this->parse_precision($pricePrecisionString);
             $precision = array(
-                'amount' => $baseInfo['input_decimals'],
-                'price' => $quoteInfo['input_decimals'],
+                'amount' => $this->safe_integer($baseInfo, 'input_decimals'),
+                'price' => intval($pricePrecisionString),
             );
+            $minimumOrderAmount = $this->safe_value($market, 'minimum_order_amount', array());
             $limits = array(
                 'amount' => array(
-                    'min' => floatval($market['minimum_order_amount'][0]),
+                    'min' => $this->safe_number($minimumOrderAmount, 0),
                     'max' => null,
                 ),
                 'price' => array(
-                    'min' => pow(10, -$precision['price']),
+                    'min' => $priceLimit,
                     'max' => null,
                 ),
-            );
-            $limits['cost'] = array(
-                'min' => $limits['amount']['min'] * $limits['price']['min'],
-                'max' => null,
+                'cost' => array(
+                    'min' => null,
+                    'max' => null,
+                ),
             );
             $result[] = array(
                 'id' => $id,
@@ -423,7 +426,7 @@ class buda extends Exchange {
         );
         $response = yield $this->publicGetMarketsMarketOrderBook (array_merge($request, $params));
         $orderbook = $this->safe_value($response, 'order_book');
-        return $this->parse_order_book($orderbook);
+        return $this->parse_order_book($orderbook, $symbol);
     }
 
     public function fetch_ohlcv($symbol, $timeframe = '1m', $since = null, $limit = null, $params = array ()) {

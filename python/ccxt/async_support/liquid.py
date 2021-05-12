@@ -390,14 +390,24 @@ class liquid(Exchange):
             minAmount = None
             if baseCurrency is not None:
                 minAmount = self.safe_number(baseCurrency['info'], 'minimum_order_quantity')
+            lastPrice = self.safe_number(market, 'last_traded_price')
+            minPrice = None
+            maxPrice = None
+            if lastPrice:
+                multiplierDown = self.safe_number(market, 'multiplier_down')
+                multiplierUp = self.safe_number(market, 'multiplier_up')
+                if multiplierDown is not None:
+                    minPrice = lastPrice * multiplierDown
+                if multiplierUp is not None:
+                    maxPrice = lastPrice * multiplierUp
             limits = {
                 'amount': {
                     'min': minAmount,
                     'max': None,
                 },
                 'price': {
-                    'min': None,
-                    'max': None,
+                    'min': minPrice,
+                    'max': maxPrice,
                 },
                 'cost': {
                     'min': None,
@@ -460,7 +470,11 @@ class liquid(Exchange):
         #         ]
         #     }
         #
-        result = {'info': response}
+        result = {
+            'info': response,
+            'timestamp': None,
+            'datetime': None,
+        }
         crypto = self.safe_value(response, 'crypto_accounts', [])
         fiat = self.safe_value(response, 'fiat_accounts', [])
         for i in range(0, len(crypto)):
@@ -487,7 +501,7 @@ class liquid(Exchange):
             'id': self.market_id(symbol),
         }
         response = await self.publicGetProductsIdPriceLevels(self.extend(request, params))
-        return self.parse_order_book(response, None, 'buy_price_levels', 'sell_price_levels')
+        return self.parse_order_book(response, symbol, None, 'buy_price_levels', 'sell_price_levels')
 
     def parse_ticker(self, ticker, market=None):
         timestamp = self.milliseconds()

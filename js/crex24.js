@@ -134,6 +134,7 @@ module.exports = class crex24 extends Exchange {
                 'BULL': 'BuySell',
                 'CREDIT': 'TerraCredit',
                 'EPS': 'Epanus',  // conflict with EPS Ellipsis https://github.com/ccxt/ccxt/issues/8909
+                'FUND': 'FUNDChains',
                 'GHOST': 'GHOSTPRISM',
                 'IQ': 'IQ.Cash',
                 'PUT': 'PutinCoin',
@@ -370,7 +371,7 @@ module.exports = class crex24 extends Exchange {
         //                     { price: 0.03124, volume: 2.63462933 },
         //                     { price: 0.069, volume: 0.004 }            ] }
         //
-        return this.parseOrderBook (response, undefined, 'buyLevels', 'sellLevels', 'price', 'volume');
+        return this.parseOrderBook (response, symbol, undefined, 'buyLevels', 'sellLevels', 'price', 'volume');
     }
 
     parseTicker (ticker, market = undefined) {

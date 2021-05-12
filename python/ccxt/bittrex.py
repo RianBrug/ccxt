@@ -40,7 +40,7 @@ class bittrex(Exchange):
             'countries': ['US'],
             'version': 'v3',
             'rateLimit': 1500,
-            'certified': True,
+            'certified': False,
             'pro': True,
             # new metainfo interface
             'has': {
@@ -357,7 +357,7 @@ class bittrex(Exchange):
         #     }
         #
         sequence = self.safe_integer(self.last_response_headers, 'Sequence')
-        orderbook = self.parse_order_book(response, None, 'bid', 'ask', 'rate', 'quantity')
+        orderbook = self.parse_order_book(response, symbol, None, 'bid', 'ask', 'rate', 'quantity')
         orderbook['nonce'] = sequence
         return orderbook
 

@@ -329,7 +329,11 @@ class aofex extends Exchange {
         //         )
         //     }
         //
-        $result = array( 'info' => $response );
+        $result = array(
+            'info' => $response,
+            'timestamp' => null,
+            'datetime' => null,
+        );
         $balances = $this->safe_value($response, 'result', array());
         for ($i = 0; $i < count($balances); $i++) {
             $balance = $balances[$i];
@@ -398,7 +402,7 @@ class aofex extends Exchange {
         //
         $result = $this->safe_value($response, 'result', array());
         $timestamp = $this->safe_integer($result, 'ts');
-        return $this->parse_order_book($result, $timestamp);
+        return $this->parse_order_book($result, $symbol, $timestamp);
     }
 
     public function parse_ticker($ticker, $market = null) {

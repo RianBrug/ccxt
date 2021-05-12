@@ -228,8 +228,38 @@ class bitso extends Exchange {
     public function fetch_balance($params = array ()) {
         $this->load_markets();
         $response = $this->privateGetBalance ($params);
-        $balances = $this->safe_value($response['payload'], 'balances');
-        $result = array( 'info' => $response );
+        //
+        //     {
+        //       "success" => true,
+        //       "$payload" => array(
+        //         "$balances" => array(
+        //           array(
+        //             "currency" => "bat",
+        //             "available" => "0.00000000",
+        //             "locked" => "0.00000000",
+        //             "total" => "0.00000000",
+        //             "pending_deposit" => "0.00000000",
+        //             "pending_withdrawal" => "0.00000000"
+        //           ),
+        //           array(
+        //             "currency" => "bch",
+        //             "available" => "0.00000000",
+        //             "locked" => "0.00000000",
+        //             "total" => "0.00000000",
+        //             "pending_deposit" => "0.00000000",
+        //             "pending_withdrawal" => "0.00000000"
+        //           ),
+        //         ),
+        //       ),
+        //     }
+        //
+        $payload = $this->safe_value($response, 'payload', array());
+        $balances = $this->safe_value($payload, 'balances');
+        $result = array(
+            'info' => $response,
+            'timestamp' => null,
+            'datetime' => null,
+        );
         for ($i = 0; $i < count($balances); $i++) {
             $balance = $balances[$i];
             $currencyId = $this->safe_string($balance, 'currency');
@@ -251,7 +281,7 @@ class bitso extends Exchange {
         $response = $this->publicGetOrderBook (array_merge($request, $params));
         $orderbook = $this->safe_value($response, 'payload');
         $timestamp = $this->parse8601($this->safe_string($orderbook, 'updated_at'));
-        return $this->parse_order_book($orderbook, $timestamp, 'bids', 'asks', 'price', 'amount');
+        return $this->parse_order_book($orderbook, $symbol, $timestamp, 'bids', 'asks', 'price', 'amount');
     }
 
     public function fetch_ticker($symbol, $params = array ()) {

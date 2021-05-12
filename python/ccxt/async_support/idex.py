@@ -163,8 +163,8 @@ class idex(Exchange):
             symbol = base + '/' + quote
             basePrecisionString = self.safe_string(entry, 'baseAssetPrecision')
             quotePrecisionString = self.safe_string(entry, 'quoteAssetPrecision')
-            basePrecision = None if (basePrecisionString is None) else '1e-' + basePrecisionString
-            quotePrecision = None if (quotePrecisionString is None) else '1e-' + quotePrecisionString
+            basePrecision = self.parse_precision(basePrecisionString)
+            quotePrecision = self.parse_precision(quotePrecisionString)
             status = self.safe_string(entry, 'status')
             active = status == 'active'
             precision = {
@@ -480,6 +480,7 @@ class idex(Exchange):
         response = await self.publicGetOrderbook(self.extend(request, params))
         nonce = self.safe_integer(response, 'sequence')
         return {
+            'symbol': symbol,
             'timestamp': None,
             'datetime': None,
             'nonce': nonce,
@@ -517,7 +518,7 @@ class idex(Exchange):
             currencyId = self.safe_string(entry, 'symbol')
             precisionString = self.safe_string(entry, 'exchangeDecimals')
             code = self.safe_currency_code(currencyId)
-            precision = None if (precisionString is None) else '1e-' + precisionString
+            precision = self.parse_precision(precisionString)
             lot = self.parse_number(precision)
             result[code] = {
                 'id': currencyId,
@@ -567,6 +568,8 @@ class idex(Exchange):
                 raise e
         result = {
             'info': response,
+            'timestamp': None,
+            'datetime': None,
         }
         for i in range(0, len(response)):
             entry = response[i]

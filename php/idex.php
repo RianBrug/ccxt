@@ -157,8 +157,8 @@ class idex extends Exchange {
             $symbol = $base . '/' . $quote;
             $basePrecisionString = $this->safe_string($entry, 'baseAssetPrecision');
             $quotePrecisionString = $this->safe_string($entry, 'quoteAssetPrecision');
-            $basePrecision = ($basePrecisionString === null) ? null : '1e-' . $basePrecisionString;
-            $quotePrecision = ($quotePrecisionString === null) ? null : '1e-' . $quotePrecisionString;
+            $basePrecision = $this->parse_precision($basePrecisionString);
+            $quotePrecision = $this->parse_precision($quotePrecisionString);
             $status = $this->safe_string($entry, 'status');
             $active = $status === 'active';
             $precision = array(
@@ -493,6 +493,7 @@ class idex extends Exchange {
         $response = $this->publicGetOrderbook (array_merge($request, $params));
         $nonce = $this->safe_integer($response, 'sequence');
         return array(
+            'symbol' => $symbol,
             'timestamp' => null,
             'datetime' => null,
             'nonce' => $nonce,
@@ -533,7 +534,7 @@ class idex extends Exchange {
             $currencyId = $this->safe_string($entry, 'symbol');
             $precisionString = $this->safe_string($entry, 'exchangeDecimals');
             $code = $this->safe_currency_code($currencyId);
-            $precision = ($precisionString === null) ? null : '1e-' . $precisionString;
+            $precision = $this->parse_precision($precisionString);
             $lot = $this->parse_number($precision);
             $result[$code] = array(
                 'id' => $currencyId,
@@ -588,6 +589,8 @@ class idex extends Exchange {
         }
         $result = array(
             'info' => $response,
+            'timestamp' => null,
+            'datetime' => null,
         );
         for ($i = 0; $i < count($response); $i++) {
             $entry = $response[$i];

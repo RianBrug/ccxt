@@ -185,6 +185,7 @@ class gateio(Exchange):
                 'MPH': 'Morpher',  # conflict with 88MPH
                 'SBTC': 'Super Bitcoin',
                 'TNC': 'Trinity Network Credit',
+                'VAI': 'VAIOT',
             },
         })
 
@@ -301,7 +302,7 @@ class gateio(Exchange):
             quote = self.safe_currency_code(quoteId)
             symbol = base + '/' + quote
             pricePrecisionString = self.safe_string(details, 'decimal_places')
-            priceLimit = None if (pricePrecisionString is None) else '1e-' + pricePrecisionString
+            priceLimit = self.parse_precision(pricePrecisionString)
             precision = {
                 'amount': self.safe_integer(details, 'amount_decimal_places'),
                 'price': int(pricePrecisionString),
@@ -372,7 +373,7 @@ class gateio(Exchange):
             'id': self.market_id(symbol),
         }
         response = self.publicGetOrderBookId(self.extend(request, params))
-        return self.parse_order_book(response)
+        return self.parse_order_book(response, symbol)
 
     def parse_ohlcv(self, ohlcv, market=None):
         # they return [Timestamp, Volume, Close, High, Low, Open]

@@ -161,8 +161,8 @@ class rightbtc extends Exchange {
             $symbol = $base . '/' . $quote;
             $amountPrecision = $this->safe_string($market, 'bid_asset_decimals');
             $pricePrecision = $this->safe_string($market, 'ask_asset_decimals');
-            $amountLimit = ($amountPrecision === null) ? null : '1e-' . $amountPrecision;
-            $priceLimit = ($pricePrecision === null) ? null : '1e-' . $pricePrecision;
+            $amountLimit = $this->parse_precision($amountPrecision);
+            $priceLimit = $this->parse_precision($pricePrecision);
             $precision = array(
                 'amount' => intval($amountPrecision),
                 'price' => intval($pricePrecision),
@@ -294,7 +294,7 @@ class rightbtc extends Exchange {
                 );
             }
         }
-        return $this->parse_order_book($bidsasks, null, 'bid', 'ask');
+        return $this->parse_order_book($bidsasks, $symbol, null, 'bid', 'ask');
     }
 
     public function parse_trade($trade, $market = null) {

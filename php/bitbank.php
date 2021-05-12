@@ -150,7 +150,7 @@ class bitbank extends Exchange {
             $maker = $this->safe_number($entry, 'maker_fee_rate_quote');
             $taker = $this->safe_number($entry, 'taker_fee_rate_quote');
             $pricePrecisionString = $this->safe_string($entry, 'price_digits');
-            $priceLimit = ($pricePrecisionString === null) ? null : '1e-' . $pricePrecisionString;
+            $priceLimit = $this->parse_precision($pricePrecisionString);
             $precision = array(
                 'price' => intval($pricePrecisionString),
                 'amount' => $this->safe_integer($entry, 'amount_digits'),
@@ -240,7 +240,7 @@ class bitbank extends Exchange {
         $response = $this->publicGetPairDepth (array_merge($request, $params));
         $orderbook = $this->safe_value($response, 'data', array());
         $timestamp = $this->safe_integer($orderbook, 'timestamp');
-        return $this->parse_order_book($orderbook, $timestamp);
+        return $this->parse_order_book($orderbook, $symbol, $timestamp);
     }
 
     public function parse_trade($trade, $market = null) {
@@ -359,7 +359,44 @@ class bitbank extends Exchange {
     public function fetch_balance($params = array ()) {
         $this->load_markets();
         $response = $this->privateGetUserAssets ($params);
-        $result = array( 'info' => $response );
+        //
+        //     {
+        //       "success" => "1",
+        //       "$data" => {
+        //         "$assets" => array(
+        //           {
+        //             "asset" => "jpy",
+        //             "amount_precision" => "4",
+        //             "onhand_amount" => "0.0000",
+        //             "locked_amount" => "0.0000",
+        //             "free_amount" => "0.0000",
+        //             "stop_deposit" => false,
+        //             "stop_withdrawal" => false,
+        //             "withdrawal_fee" => array(
+        //               "threshold" => "30000.0000",
+        //               "under" => "550.0000",
+        //               "over" => "770.0000"
+        //             }
+        //           ),
+        //           array(
+        //             "asset" => "btc",
+        //             "amount_precision" => "8",
+        //             "onhand_amount" => "0.00000000",
+        //             "locked_amount" => "0.00000000",
+        //             "free_amount" => "0.00000000",
+        //             "stop_deposit" => false,
+        //             "stop_withdrawal" => false,
+        //             "withdrawal_fee" => "0.00060000"
+        //           ),
+        //         )
+        //       }
+        //     }
+        //
+        $result = array(
+            'info' => $response,
+            'timestamp' => null,
+            'datetime' => null,
+        );
         $data = $this->safe_value($response, 'data', array());
         $assets = $this->safe_value($data, 'assets', array());
         for ($i = 0; $i < count($assets); $i++) {

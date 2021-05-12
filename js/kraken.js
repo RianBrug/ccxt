@@ -525,7 +525,7 @@ module.exports = class kraken extends Exchange {
         if (wsName !== undefined) {
             orderbook = this.safeValue (result, wsName, orderbook);
         }
-        return this.parseOrderBook (orderbook);
+        return this.parseOrderBook (orderbook, symbol);
     }
 
     parseTicker (ticker, market = undefined) {
@@ -953,8 +953,22 @@ module.exports = class kraken extends Exchange {
     async fetchBalance (params = {}) {
         await this.loadMarkets ();
         const response = await this.privatePostBalance (params);
+        //
+        //     {
+        //         "error":[],
+        //         "result":{
+        //             "ZUSD":"58.8649",
+        //             "KFEE":"4399.43",
+        //             "XXBT":"0.0000034506",
+        //         }
+        //     }
+        //
         const balances = this.safeValue (response, 'result', {});
-        const result = { 'info': balances };
+        const result = {
+            'info': response,
+            'timestamp': undefined,
+            'datetime': undefined,
+        };
         const currencyIds = Object.keys (balances);
         for (let i = 0; i < currencyIds.length; i++) {
             const currencyId = currencyIds[i];

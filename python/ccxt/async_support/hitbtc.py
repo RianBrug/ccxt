@@ -434,7 +434,18 @@ class hitbtc(Exchange):
         method = 'privateGet' + self.capitalize(typeId) + 'Balance'
         query = self.omit(params, 'type')
         response = await getattr(self, method)(query)
-        result = {'info': response}
+        #
+        #     [
+        #         {"currency":"SPI","available":"0","reserved":"0"},
+        #         {"currency":"GRPH","available":"0","reserved":"0"},
+        #         {"currency":"DGTX","available":"0","reserved":"0"},
+        #     ]
+        #
+        result = {
+            'info': response,
+            'timestamp': None,
+            'datetime': None,
+        }
         for i in range(0, len(response)):
             balance = response[i]
             currencyId = self.safe_string(balance, 'currency')
@@ -495,7 +506,7 @@ class hitbtc(Exchange):
         if limit is not None:
             request['limit'] = limit  # default = 100, 0 = unlimited
         response = await self.publicGetOrderbookSymbol(self.extend(request, params))
-        return self.parse_order_book(response, None, 'bid', 'ask', 'price', 'size')
+        return self.parse_order_book(response, symbol, None, 'bid', 'ask', 'price', 'size')
 
     def parse_ticker(self, ticker, market=None):
         timestamp = self.parse8601(ticker['timestamp'])

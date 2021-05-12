@@ -202,8 +202,8 @@ class bigone(Exchange):
             symbol = base + '/' + quote
             amountPrecisionString = self.safe_string(market, 'base_scale')
             pricePrecisionString = self.safe_string(market, 'quote_scale')
-            amountLimit = None if (amountPrecisionString is None) else '1e-' + amountPrecisionString
-            priceLimit = None if (pricePrecisionString is None) else '1e-' + pricePrecisionString
+            amountLimit = self.parse_precision(amountPrecisionString)
+            priceLimit = self.parse_precision(pricePrecisionString)
             precision = {
                 'amount': int(amountPrecisionString),
                 'price': int(pricePrecisionString),
@@ -401,7 +401,7 @@ class bigone(Exchange):
         #     }
         #
         orderbook = self.safe_value(response, 'data', {})
-        return self.parse_order_book(orderbook, None, 'bids', 'asks', 'price', 'quantity')
+        return self.parse_order_book(orderbook, symbol, None, 'bids', 'asks', 'price', 'quantity')
 
     def parse_trade(self, trade, market=None):
         #
@@ -640,7 +640,11 @@ class bigone(Exchange):
         #         ],
         #     }
         #
-        result = {'info': response}
+        result = {
+            'info': response,
+            'timestamp': None,
+            'datetime': None,
+        }
         balances = self.safe_value(response, 'data', [])
         for i in range(0, len(balances)):
             balance = balances[i]

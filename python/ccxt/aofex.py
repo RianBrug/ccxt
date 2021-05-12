@@ -330,7 +330,11 @@ class aofex(Exchange):
         #         ]
         #     }
         #
-        result = {'info': response}
+        result = {
+            'info': response,
+            'timestamp': None,
+            'datetime': None,
+        }
         balances = self.safe_value(response, 'result', [])
         for i in range(0, len(balances)):
             balance = balances[i]
@@ -396,7 +400,7 @@ class aofex(Exchange):
         #
         result = self.safe_value(response, 'result', {})
         timestamp = self.safe_integer(result, 'ts')
-        return self.parse_order_book(result, timestamp)
+        return self.parse_order_book(result, symbol, timestamp)
 
     def parse_ticker(self, ticker, market=None):
         #

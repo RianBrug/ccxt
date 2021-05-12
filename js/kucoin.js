@@ -248,6 +248,7 @@ module.exports = class kucoin extends Exchange {
                 'EDGE': 'DADI', // https://github.com/ccxt/ccxt/issues/5756
                 'WAX': 'WAXP',
                 'TRY': 'Trias',
+                'VAI': 'VAIOT',
             },
             'options': {
                 'version': 'v1',
@@ -829,7 +830,7 @@ module.exports = class kucoin extends Exchange {
         //
         const data = this.safeValue (response, 'data', {});
         const timestamp = this.safeInteger (data, 'time');
-        const orderbook = this.parseOrderBook (data, timestamp, 'bids', 'asks', level - 2, level - 1);
+        const orderbook = this.parseOrderBook (data, symbol, timestamp, 'bids', 'asks', level - 2, level - 1);
         orderbook['nonce'] = this.safeInteger (data, 'sequence');
         return orderbook;
     }
@@ -1703,13 +1704,17 @@ module.exports = class kucoin extends Exchange {
             //         }
             //     }
             //
+            const result = {
+                'info': response,
+                'timestamp': undefined,
+                'datetime': undefined,
+            };
             const data = this.safeValue (response, 'data');
             const currencyId = this.safeString (data, 'currency');
             const code = this.safeCurrencyCode (currencyId);
             const account = this.account ();
             account['free'] = this.safeString (data, 'availableBalance');
             account['total'] = this.safeString (data, 'accountEquity');
-            const result = { 'info': response };
             result[code] = account;
             return this.parseBalance (result, false);
         } else {
@@ -1728,7 +1733,11 @@ module.exports = class kucoin extends Exchange {
             //     }
             //
             const data = this.safeValue (response, 'data', []);
-            const result = { 'info': response };
+            const result = {
+                'info': response,
+                'timestamp': undefined,
+                'datetime': undefined,
+            };
             for (let i = 0; i < data.length; i++) {
                 const balance = data[i];
                 const balanceType = this.safeString (balance, 'type');

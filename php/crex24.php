@@ -141,6 +141,7 @@ class crex24 extends Exchange {
                 'BULL' => 'BuySell',
                 'CREDIT' => 'TerraCredit',
                 'EPS' => 'Epanus',  // conflict with EPS Ellipsis https://github.com/ccxt/ccxt/issues/8909
+                'FUND' => 'FUNDChains',
                 'GHOST' => 'GHOSTPRISM',
                 'IQ' => 'IQ.Cash',
                 'PUT' => 'PutinCoin',
@@ -377,7 +378,7 @@ class crex24 extends Exchange {
         //                     array( price => 0.03124, volume => 2.63462933 ),
         //                     array( price => 0.069, volume => 0.004 )            ) }
         //
-        return $this->parse_order_book($response, null, 'buyLevels', 'sellLevels', 'price', 'volume');
+        return $this->parse_order_book($response, $symbol, null, 'buyLevels', 'sellLevels', 'price', 'volume');
     }
 
     public function parse_ticker($ticker, $market = null) {

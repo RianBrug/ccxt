@@ -233,8 +233,8 @@ class zb extends Exchange {
             $symbol = $base . '/' . $quote;
             $amountPrecisionString = $this->safe_string($market, 'amountScale');
             $pricePrecisionString = $this->safe_string($market, 'priceScale');
-            $amountLimit = ($amountPrecisionString === null) ? null : '1e-' . $amountPrecisionString;
-            $priceLimit = ($pricePrecisionString === null) ? null : '1e-' . $pricePrecisionString;
+            $amountLimit = $this->parse_precision($amountPrecisionString);
+            $priceLimit = $this->parse_precision($pricePrecisionString);
             $precision = array(
                 'amount' => intval($amountPrecisionString),
                 'price' => intval($pricePrecisionString),
@@ -274,7 +274,11 @@ class zb extends Exchange {
         // todo => use this somehow
         // $permissions = $response['result']['base'];
         $balances = $this->safe_value($response['result'], 'coins');
-        $result = array( 'info' => $response );
+        $result = array(
+            'info' => $response,
+            'timestamp' => null,
+            'datetime' => null,
+        );
         for ($i = 0; $i < count($balances); $i++) {
             $balance = $balances[$i];
             //     {        enName => "BTC",
@@ -410,7 +414,7 @@ class zb extends Exchange {
             $request['size'] = $limit;
         }
         $response = yield $this->publicGetDepth (array_merge($request, $params));
-        return $this->parse_order_book($response);
+        return $this->parse_order_book($response, $symbol);
     }
 
     public function fetch_tickers($symbols = null, $params = array ()) {

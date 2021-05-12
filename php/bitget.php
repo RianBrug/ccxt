@@ -812,8 +812,8 @@ class bitget extends Exchange {
         $tickSize = $this->safe_string($market, 'tick_size');
         $sizeIncrement = $this->safe_string($market, 'size_increment');
         $precision = array(
-            'amount' => floatval('1e-' . $sizeIncrement),
-            'price' => floatval('1e-' . $tickSize),
+            'amount' => $this->parse_number($this->parse_precision($sizeIncrement)),
+            'price' => $this->parse_number($this->parse_precision($tickSize)),
         );
         $minAmount = $this->safe_number_2($market, 'min_size', 'base_min_size');
         $status = $this->safe_string($market, 'status');
@@ -999,7 +999,7 @@ class bitget extends Exchange {
         $data = $this->safe_value($response, 'data', $response);
         $timestamp = $this->safe_integer_2($data, 'timestamp', 'ts');
         $nonce = $this->safe_integer($data, 'id');
-        $orderbook = $this->parse_order_book($data, $timestamp);
+        $orderbook = $this->parse_order_book($data, $symbol, $timestamp);
         $orderbook['nonce'] = $nonce;
         return $orderbook;
     }

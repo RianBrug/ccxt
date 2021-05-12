@@ -744,8 +744,9 @@ class phemex extends Exchange {
         );
     }
 
-    public function parse_order_book($orderbook, $timestamp = null, $bidsKey = 'bids', $asksKey = 'asks', $priceKey = 0, $amountKey = 1, $market = null) {
+    public function parse_order_book($orderbook, $symbol, $timestamp = null, $bidsKey = 'bids', $asksKey = 'asks', $priceKey = 0, $amountKey = 1, $market = null) {
         $result = array(
+            'symbol' => $symbol,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601($timestamp),
             'nonce' => null,
@@ -801,7 +802,7 @@ class phemex extends Exchange {
         $result = $this->safe_value($response, 'result', array());
         $book = $this->safe_value($result, 'book', array());
         $timestamp = $this->safe_integer_product($result, 'timestamp', 0.000001);
-        $orderbook = $this->parse_order_book($book, $timestamp, 'bids', 'asks', 0, 1, $market);
+        $orderbook = $this->parse_order_book($book, $symbol, $timestamp, 'bids', 'asks', 0, 1, $market);
         $orderbook['nonce'] = $this->safe_integer($result, 'sequence');
         return $orderbook;
     }
@@ -1272,7 +1273,7 @@ class phemex extends Exchange {
         //                 "$balanceEv":0,
         //                 "$lockedTradingBalanceEv":0,
         //                 "$lockedWithdrawEv":0,
-        //                 "lastUpdateTimeNs":1592065834511322514,
+        //                 "$lastUpdateTimeNs":1592065834511322514,
         //                 "walletVid":0
         //             ),
         //             {
@@ -1280,12 +1281,13 @@ class phemex extends Exchange {
         //                 "$balanceEv":0,
         //                 "$lockedTradingBalanceEv":0,
         //                 "$lockedWithdrawEv":0,
-        //                 "lastUpdateTimeNs":1592065834511322514,
+        //                 "$lastUpdateTimeNs":1592065834511322514,
         //                 "walletVid":0
         //             }
         //         )
         //     }
         //
+        $timestamp = null;
         $result = array( 'info' => $response );
         $data = $this->safe_value($response, 'data', array());
         for ($i = 0; $i < count($data); $i++) {
@@ -1302,10 +1304,14 @@ class phemex extends Exchange {
             $lockedTradingBalance = $this->from_en($lockedTradingBalanceEv, $scale, $scale, DECIMAL_PLACES);
             $lockedWithdraw = $this->from_en($lockedWithdrawEv, $scale, $scale, DECIMAL_PLACES);
             $used = $this->sum($lockedTradingBalance, $lockedWithdraw);
+            $lastUpdateTimeNs = $this->safe_integer_product($balance, 'lastUpdateTimeNs', 0.000001);
+            $timestamp = ($timestamp === null) ? $lastUpdateTimeNs : max ($timestamp, $lastUpdateTimeNs);
             $account['total'] = $total;
             $account['used'] = $used;
             $result[$code] = $account;
         }
+        $result['timestamp'] = $timestamp;
+        $result['datetime'] = $this->iso8601($timestamp);
         return $this->parse_balance($result);
     }
 

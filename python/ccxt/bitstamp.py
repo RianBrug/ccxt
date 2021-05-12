@@ -152,6 +152,12 @@ class bitstamp(Exchange):
                         'bat_address/',
                         'uma_withdrawal/',
                         'uma_address/',
+                        'snx_withdrawal/',
+                        'snx_address/',
+                        'uni_withdrawal/',
+                        'uni_address/',
+                        'yfi_withdrawal/',
+                        'yfi_address',
                         'transfer-to-main/',
                         'transfer-from-main/',
                         'withdrawal-requests/',
@@ -286,8 +292,8 @@ class bitstamp(Exchange):
             id = self.safe_string(market, 'url_symbol')
             amountPrecisionString = self.safe_string(market, 'base_decimals')
             pricePrecisionString = self.safe_string(market, 'counter_decimals')
-            amountLimit = None if (amountPrecisionString is None) else '1e-' + amountPrecisionString
-            priceLimit = None if (pricePrecisionString is None) else '1e-' + pricePrecisionString
+            amountLimit = self.parse_precision(amountPrecisionString)
+            priceLimit = self.parse_precision(pricePrecisionString)
             precision = {
                 'amount': int(amountPrecisionString),
                 'price': int(pricePrecisionString),
@@ -423,7 +429,7 @@ class bitstamp(Exchange):
         #
         microtimestamp = self.safe_integer(response, 'microtimestamp')
         timestamp = int(microtimestamp / 1000)
-        orderbook = self.parse_order_book(response, timestamp)
+        orderbook = self.parse_order_book(response, symbol, timestamp)
         orderbook['nonce'] = microtimestamp
         return orderbook
 
@@ -738,7 +744,29 @@ class bitstamp(Exchange):
     def fetch_balance(self, params={}):
         self.load_markets()
         balance = self.privatePostBalance(params)
-        result = {'info': balance}
+        #
+        #     {
+        #         "aave_available": "0.00000000",
+        #         "aave_balance": "0.00000000",
+        #         "aave_reserved": "0.00000000",
+        #         "aave_withdrawal_fee": "0.07000000",
+        #         "aavebtc_fee": "0.000",
+        #         "aaveeur_fee": "0.000",
+        #         "aaveusd_fee": "0.000",
+        #         "bat_available": "0.00000000",
+        #         "bat_balance": "0.00000000",
+        #         "bat_reserved": "0.00000000",
+        #         "bat_withdrawal_fee": "5.00000000",
+        #         "batbtc_fee": "0.000",
+        #         "bateur_fee": "0.000",
+        #         "batusd_fee": "0.000",
+        #     }
+        #
+        result = {
+            'info': balance,
+            'timestamp': None,
+            'datetime': None,
+        }
         codes = list(self.currencies.keys())
         for i in range(0, len(codes)):
             code = codes[i]

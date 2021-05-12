@@ -163,8 +163,8 @@ class rightbtc(Exchange):
             symbol = base + '/' + quote
             amountPrecision = self.safe_string(market, 'bid_asset_decimals')
             pricePrecision = self.safe_string(market, 'ask_asset_decimals')
-            amountLimit = None if (amountPrecision is None) else '1e-' + amountPrecision
-            priceLimit = None if (pricePrecision is None) else '1e-' + pricePrecision
+            amountLimit = self.parse_precision(amountPrecision)
+            priceLimit = self.parse_precision(pricePrecision)
             precision = {
                 'amount': int(amountPrecision),
                 'price': int(pricePrecision),
@@ -283,7 +283,7 @@ class rightbtc(Exchange):
                     amount / 1e8,
                     total / 1e8,
                 ])
-        return self.parse_order_book(bidsasks, None, 'bid', 'ask')
+        return self.parse_order_book(bidsasks, symbol, None, 'bid', 'ask')
 
     def parse_trade(self, trade, market=None):
         #

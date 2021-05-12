@@ -820,8 +820,8 @@ class bitget(Exchange):
         tickSize = self.safe_string(market, 'tick_size')
         sizeIncrement = self.safe_string(market, 'size_increment')
         precision = {
-            'amount': float('1e-' + sizeIncrement),
-            'price': float('1e-' + tickSize),
+            'amount': self.parse_number(self.parse_precision(sizeIncrement)),
+            'price': self.parse_number(self.parse_precision(tickSize)),
         }
         minAmount = self.safe_number_2(market, 'min_size', 'base_min_size')
         status = self.safe_string(market, 'status')
@@ -1000,7 +1000,7 @@ class bitget(Exchange):
         data = self.safe_value(response, 'data', response)
         timestamp = self.safe_integer_2(data, 'timestamp', 'ts')
         nonce = self.safe_integer(data, 'id')
-        orderbook = self.parse_order_book(data, timestamp)
+        orderbook = self.parse_order_book(data, symbol, timestamp)
         orderbook['nonce'] = nonce
         return orderbook
 

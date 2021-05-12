@@ -237,8 +237,8 @@ class zb(Exchange):
             symbol = base + '/' + quote
             amountPrecisionString = self.safe_string(market, 'amountScale')
             pricePrecisionString = self.safe_string(market, 'priceScale')
-            amountLimit = None if (amountPrecisionString is None) else '1e-' + amountPrecisionString
-            priceLimit = None if (pricePrecisionString is None) else '1e-' + pricePrecisionString
+            amountLimit = self.parse_precision(amountPrecisionString)
+            priceLimit = self.parse_precision(pricePrecisionString)
             precision = {
                 'amount': int(amountPrecisionString),
                 'price': int(pricePrecisionString),
@@ -276,7 +276,11 @@ class zb(Exchange):
         # todo: use self somehow
         # permissions = response['result']['base']
         balances = self.safe_value(response['result'], 'coins')
-        result = {'info': response}
+        result = {
+            'info': response,
+            'timestamp': None,
+            'datetime': None,
+        }
         for i in range(0, len(balances)):
             balance = balances[i]
             #     {       enName: "BTC",
@@ -405,7 +409,7 @@ class zb(Exchange):
         if limit is not None:
             request['size'] = limit
         response = self.publicGetDepth(self.extend(request, params))
-        return self.parse_order_book(response)
+        return self.parse_order_book(response, symbol)
 
     def fetch_tickers(self, symbols=None, params={}):
         self.load_markets()

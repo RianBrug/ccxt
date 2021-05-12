@@ -396,6 +396,7 @@ class wavesexchange extends Exchange {
         $bids = $this->parse_order_book_side($this->safe_value($response, 'bids'), $market, $limit);
         $asks = $this->parse_order_book_side($this->safe_value($response, 'asks'), $market, $limit);
         return array(
+            'symbol' => $symbol,
             'bids' => $bids,
             'asks' => $asks,
             'timestamp' => $timestamp,
@@ -1356,8 +1357,11 @@ class wavesexchange extends Exchange {
         // }
         $balances = $this->safe_value($totalBalance, 'balances');
         $result = array();
+        $timestamp = null;
         for ($i = 0; $i < count($balances); $i++) {
             $entry = $balances[$i];
+            $entryTimestamp = $this->safe_integer($entry, 'timestamp');
+            $timestamp = ($timestamp === null) ? $entryTimestamp : max ($timestamp, $entryTimestamp);
             $issueTransaction = $this->safe_value($entry, 'issueTransaction');
             $decimals = $this->safe_integer($issueTransaction, 'decimals');
             $currencyId = $this->safe_string($entry, 'assetId');
@@ -1369,10 +1373,10 @@ class wavesexchange extends Exchange {
                 $result[$code]['total'] = $this->from_wei($balance, $decimals);
             }
         }
-        $timestamp = $this->milliseconds();
+        $currentTimestamp = $this->milliseconds();
         $byteArray = array(
             $this->base58_to_binary($this->apiKey),
-            $this->number_to_be($timestamp, 8),
+            $this->number_to_be($currentTimestamp, 8),
         );
         $binary = $this->binary_concat_array($byteArray);
         $hexSecret = bin2hex($this->base58_to_binary($this->secret));
@@ -1380,7 +1384,7 @@ class wavesexchange extends Exchange {
         $matcherRequest = array(
             'publicKey' => $this->apiKey,
             'signature' => $signature,
-            'timestamp' => (string) $timestamp,
+            'timestamp' => (string) $currentTimestamp,
         );
         $reservedBalance = yield $this->matcherGetMatcherBalanceReservedPublicKey ($matcherRequest);
         // array( WAVES => 200300000 )
@@ -1412,6 +1416,8 @@ class wavesexchange extends Exchange {
                 $result[$code]['used'] = 0.0;
             }
         }
+        $result['timestamp'] = $timestamp;
+        $result['datetime'] = $this->iso8601($timestamp);
         return $this->parse_balance($result);
     }
 

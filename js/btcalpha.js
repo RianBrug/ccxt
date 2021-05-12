@@ -134,7 +134,7 @@ module.exports = class btcalpha extends Exchange {
             const quote = this.safeCurrencyCode (quoteId);
             const symbol = base + '/' + quote;
             const pricePrecision = this.safeString (market, 'price_precision');
-            const priceLimit = (pricePrecision === undefined) ? undefined : '1e-' + pricePrecision;
+            const priceLimit = this.parsePrecision (pricePrecision);
             const precision = {
                 'amount': 8,
                 'price': parseInt (pricePrecision),
@@ -179,7 +179,7 @@ module.exports = class btcalpha extends Exchange {
             request['limit_buy'] = limit;
         }
         const response = await this.publicGetOrderbookPairName (this.extend (request, params));
-        return this.parseOrderBook (response, undefined, 'buy', 'sell', 'price', 'amount');
+        return this.parseOrderBook (response, symbol, undefined, 'buy', 'sell', 'price', 'amount');
     }
 
     parseBidsAsks (bidasks, priceKey = 0, amountKey = 1) {

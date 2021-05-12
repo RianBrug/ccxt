@@ -154,8 +154,8 @@ module.exports = class idex extends Exchange {
             const symbol = base + '/' + quote;
             const basePrecisionString = this.safeString (entry, 'baseAssetPrecision');
             const quotePrecisionString = this.safeString (entry, 'quoteAssetPrecision');
-            const basePrecision = (basePrecisionString === undefined) ? undefined : '1e-' + basePrecisionString;
-            const quotePrecision = (quotePrecisionString === undefined) ? undefined : '1e-' + quotePrecisionString;
+            const basePrecision = this.parsePrecision (basePrecisionString);
+            const quotePrecision = this.parsePrecision (quotePrecisionString);
             const status = this.safeString (entry, 'status');
             const active = status === 'active';
             const precision = {
@@ -490,6 +490,7 @@ module.exports = class idex extends Exchange {
         const response = await this.publicGetOrderbook (this.extend (request, params));
         const nonce = this.safeInteger (response, 'sequence');
         return {
+            'symbol': symbol,
             'timestamp': undefined,
             'datetime': undefined,
             'nonce': nonce,
@@ -530,7 +531,7 @@ module.exports = class idex extends Exchange {
             const currencyId = this.safeString (entry, 'symbol');
             const precisionString = this.safeString (entry, 'exchangeDecimals');
             const code = this.safeCurrencyCode (currencyId);
-            const precision = (precisionString === undefined) ? undefined : '1e-' + precisionString;
+            const precision = this.parsePrecision (precisionString);
             const lot = this.parseNumber (precision);
             result[code] = {
                 'id': currencyId,
@@ -585,6 +586,8 @@ module.exports = class idex extends Exchange {
         }
         const result = {
             'info': response,
+            'timestamp': undefined,
+            'datetime': undefined,
         };
         for (let i = 0; i < response.length; i++) {
             const entry = response[i];

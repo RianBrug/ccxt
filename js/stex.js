@@ -251,7 +251,7 @@ module.exports = class stex extends Exchange {
             // differentiated fees for each particular method
             const code = this.safeCurrencyCode (this.safeString (currency, 'code'));
             const precision = this.safeString (currency, 'precision');
-            const amountLimit = (precision === undefined) ? undefined : '1e-' + precision;
+            const amountLimit = this.parsePrecision (precision);
             const fee = this.safeNumber (currency, 'withdrawal_fee_const'); // todo: redesign
             const active = this.safeValue (currency, 'active', true);
             result[code] = {
@@ -473,7 +473,7 @@ module.exports = class stex extends Exchange {
         //     }
         //
         const orderbook = this.safeValue (response, 'data', {});
-        return this.parseOrderBook (orderbook, undefined, 'bid', 'ask', 'price', 'amount');
+        return this.parseOrderBook (orderbook, symbol, undefined, 'bid', 'ask', 'price', 'amount');
     }
 
     parseTicker (ticker, market = undefined) {
@@ -808,7 +808,11 @@ module.exports = class stex extends Exchange {
         //         ]
         //     }
         //
-        const result = { 'info': response };
+        const result = {
+            'info': response,
+            'timestamp': undefined,
+            'datetime': undefined,
+        };
         const balances = this.safeValue (response, 'data', []);
         for (let i = 0; i < balances.length; i++) {
             const balance = balances[i];
