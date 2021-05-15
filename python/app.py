@@ -23,10 +23,26 @@ from matplotlib.backends.backend_pdf import PdfPages
 msec = 1000
 minute = 60 * msec
 hold = 30
+#
+# exchange_name = ('huobipro')
+# sc_pair = 'USDT/HUSD';
+
+# exchange_name = ('binance')
+# sc_pair = 'BUSD/USDT';
+
+# exchange_name = ('binanceus')
+# sc_pair = 'USDT/USD';
+
+# exchange_name = ('bittrex')
+# sc_pair = 'PAX/USD';
+
+exchange_name = ('kraken')
+sc_pair = 'DAI/USD';
 
 # -----------------------------------------------------------------------------
 
-exchange = ccxt.binance({
+# exchange = ccxt.binance({
+exchange = ccxt.kraken({
     'rateLimit': 1000,
     'enableRateLimit': True,
     # 'verbose': True,
@@ -34,7 +50,7 @@ exchange = ccxt.binance({
 
 # -----------------------------------------------------------------------------
 
-from_datetime = '2021-04-22 00:00:00'
+from_datetime = '2021-05-15 15:30:00'
 from_timestamp = exchange.parse8601(from_datetime)
 
 # -----------------------------------------------------------------------------
@@ -50,7 +66,7 @@ while from_timestamp < now:
     try:
 
         print(exchange.milliseconds(), 'Fetching candles starting from', exchange.iso8601(from_timestamp))
-        ohlcvs = exchange.fetch_ohlcv('BUSD/USDT', '1m', from_timestamp)
+        ohlcvs = exchange.fetch_ohlcv(sc_pair, '1m', from_timestamp)
         print(exchange.milliseconds(), 'Fetched', len(ohlcvs), 'candles')
         first = ohlcvs[0][0]
         last = ohlcvs[-1][0]
@@ -84,24 +100,27 @@ fig = make_subplots(specs=[[{"secondary_y": True}]])
 
 
 # plot the candlesticks
-fig.add_trace(go.Candlestick(x=dates,
+fig.add_trace(go.Candlestick(name='<b>Candlesticks</b>', x=dates,
                        open=open_data, high=high_data,
                        low=low_data, close=close_data),
                        secondary_y=True)
 
 # include a go.Bar trace for volumes
-fig.add_trace(go.Bar(x=dates, y=volume_data),
+fig.add_trace(go.Bar(name='<b>Volume Bars</b>', x=dates, y=volume_data),
                 secondary_y=False)
 
-# fig.update_layout(
-#     title='BUSD/USDT - Binance',
-#     yaxis_title='$',
-#     shapes = [dict(
-#         y0='2016-12-09', y1='2016-12-09', x0=0, x1=1, xref='x', yref='paper',
-#         line_width=2)],
-#     annotations=[dict(
-#         x='2016-12-09', y=0.05, xref='x', yref='paper',
-#         showarrow=False, xanchor='left', text='Increase Period Begins')]
-# )
+fig.update_layout(
+    title=exchange_name+ ":" +sc_pair,
+    yaxis_title='<b>Volume</b>',
+    xaxis_title='<b>Datetime</b>',
+    # shapes = [dict(
+    #     y0='2016-12-09', y1='2016-12-09', x0=0, x1=1, xref='x', yref='paper',
+    #     line_width=2)],
+    # # annotations=[dict(
+    # #     x='2016-12-09', y=0.05, xref='x', yref='paper',
+    # #     showarrow=False, xanchor='left', text='Increase Period Begins')]
+)
+fig.update_yaxes(title_text="<b>$ Price</b>", secondary_y=True)
+
 fig.layout.yaxis2.showgrid=False
 fig.show()
