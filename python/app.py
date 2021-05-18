@@ -17,6 +17,9 @@ sys.path.append(root + '/python')
 import ccxt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+
+from pandas import DataFrame
+
 # -----------------------------------------------------------------------------
 # common constants
 
@@ -50,7 +53,7 @@ exchange = ccxt.kraken({
 
 # -----------------------------------------------------------------------------
 
-from_datetime = '2021-05-15 15:30:00'
+from_datetime = '2021-05-16 15:30:00'
 from_timestamp = exchange.parse8601(from_datetime)
 
 # -----------------------------------------------------------------------------
@@ -94,6 +97,9 @@ for candle in data:
     low_data.append(candle[3])
     close_data.append(candle[4])
     volume_data.append(candle[5])
+
+# turn api result calls to dataframe, excluding, shall we consider candles with no volume?
+df = DataFrame(data, columns=['Timestamp','Open','High','Low','Close','Volume'])
 
 # Create figure with secondary y-axis
 fig = make_subplots(specs=[[{"secondary_y": True}]])
