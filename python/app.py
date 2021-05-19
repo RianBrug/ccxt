@@ -33,14 +33,44 @@ msec = 1000
 minute = 60 * msec
 hold = 30
 #
-# exchange_name = ('huobipro')
-# sc_pair = 'USDT/HUSD';
-date1 = '2021-05-17 00:00:00'
-date2 = '2021-05-19 00:00:00'
+exchange_name = ('huobipro')
+sc_pair = 'USDTHUSD';
+sc_pair_with_slash = 'USDT/HUSD';
 
-exchange_name = ('binance')
-sc_pair = 'USDTDAI';
-sc_pair_with_slash = 'USDT/DAI';
+# exchange_name = ('binance')
+# sc_pair = 'SUSDUSDT';
+# sc_pair = 'USDCBUSD';
+# sc_pair = 'USDCUSDT';
+# sc_pair_with_slash = 'SUSD/USDT';
+# sc_pair_with_slash = 'USDC/BUSD';
+# sc_pair_with_slash = 'USDC/USDT';
+
+# exchange_name = ('binanceus')
+# sc_pair = 'USDTUSD';
+# sc_pair_with_slash = 'USDT/USD';
+
+# exchange_name = ('bittrex')
+# sc_pair = 'PAXUSD';
+# sc_pair_with_slash = 'PAX/USD';
+
+# exchange_name = ('kraken')
+# sc_pair = 'DAI/USD';
+# sc_pair_with_slash = 'USDT/DAI';
+
+# exchange_name = ('hitbtc')
+# sc_pair = 'BUSDUSDT';
+# sc_pair_with_slash = 'BUSD/USDT';
+
+# exchange_name = ('kucoin')
+# sc_pair = 'USDTDAI';
+# sc_pair_with_slash = 'USDT/DAI';
+
+# exchange_name = ('okex')
+# sc_pair = 'TUSDUSDT';
+# sc_pair_with_slash = 'TUSD/USDT';
+
+date1 = '2021-04-19 00:00:00'
+date2 = '2021-05-19 00:00:00'
 
 path = '/home/ribs/Documents/ccxt/python/csv_exports'
 csv_file_name = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
@@ -51,18 +81,10 @@ output_dir = Path('/home/ribs/Documents/ccxt/python/csv_exports')
 
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# exchange_name = ('binanceus')
-# sc_pair = 'USDT/USD';
-
-# exchange_name = ('bittrex')
-# sc_pair = 'PAX/USD';
-
-# exchange_name = ('kraken')
-# sc_pair = 'DAI/USD';
 
 # -----------------------------------------------------------------------------
 
-exchange = ccxt.binance({
+exchange = ccxt.huobipro({
     'rateLimit': 1000,
     'enableRateLimit': True,
     # 'verbose': True,
@@ -154,4 +176,4 @@ fig.update_yaxes(title_text="<b>$ Price</b>", secondary_y=True)
 
 fig.layout.yaxis2.showgrid=False
 
-fig.show()
+# fig.show()
