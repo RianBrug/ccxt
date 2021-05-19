@@ -3,8 +3,10 @@
 import os
 import sys
 import time
+import pdb
 from datetime import datetime
 import plotly.graph_objects as go
+import plotly.express as px
 from plotly.subplots import make_subplots
 
 # -----------------------------------------------------------------------------
@@ -17,6 +19,13 @@ sys.path.append(root + '/python')
 import ccxt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+
+from pandas import DataFrame
+
+from sqlalchemy import create_engine # database connection
+from IPython.display import display
+from pathlib import Path
+
 # -----------------------------------------------------------------------------
 # common constants
 
@@ -24,25 +33,58 @@ msec = 1000
 minute = 60 * msec
 hold = 30
 #
-# exchange_name = ('huobipro')
-# sc_pair = 'USDT/HUSD';
+exchange_name = ('huobipro')
+sc_pair = 'USDTHUSD';
+sc_pair_with_slash = 'USDT/HUSD';
 
 # exchange_name = ('binance')
-# sc_pair = 'BUSD/USDT';
+# sc_pair = 'SUSDUSDT';
+# sc_pair = 'USDCBUSD';
+# sc_pair = 'USDCUSDT';
+# sc_pair_with_slash = 'SUSD/USDT';
+# sc_pair_with_slash = 'USDC/BUSD';
+# sc_pair_with_slash = 'USDC/USDT';
 
 # exchange_name = ('binanceus')
-# sc_pair = 'USDT/USD';
+# sc_pair = 'USDTUSD';
+# sc_pair_with_slash = 'USDT/USD';
 
 # exchange_name = ('bittrex')
-# sc_pair = 'PAX/USD';
+# sc_pair = 'PAXUSD';
+# sc_pair_with_slash = 'PAX/USD';
 
-exchange_name = ('kraken')
-sc_pair = 'DAI/USD';
+# exchange_name = ('kraken')
+# sc_pair = 'DAI/USD';
+# sc_pair_with_slash = 'USDT/DAI';
+
+# exchange_name = ('hitbtc')
+# sc_pair = 'BUSDUSDT';
+# sc_pair_with_slash = 'BUSD/USDT';
+
+# exchange_name = ('kucoin')
+# sc_pair = 'USDTDAI';
+# sc_pair_with_slash = 'USDT/DAI';
+
+# exchange_name = ('okex')
+# sc_pair = 'TUSDUSDT';
+# sc_pair_with_slash = 'TUSD/USDT';
+
+date1 = '2021-04-19 00:00:00'
+date2 = '2021-05-19 00:00:00'
+
+path = '/home/ribs/Documents/ccxt/python/csv_exports'
+csv_file_name = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
+output_file = os.path.join(path,csv_file_name)
+
+output_file = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
+output_dir = Path('/home/ribs/Documents/ccxt/python/csv_exports')
+
+output_dir.mkdir(parents=True, exist_ok=True)
+
 
 # -----------------------------------------------------------------------------
 
-# exchange = ccxt.binance({
-exchange = ccxt.kraken({
+exchange = ccxt.huobipro({
     'rateLimit': 1000,
     'enableRateLimit': True,
     # 'verbose': True,
@@ -50,12 +92,18 @@ exchange = ccxt.kraken({
 
 # -----------------------------------------------------------------------------
 
-from_datetime = '2021-05-15 15:30:00'
-from_timestamp = exchange.parse8601(from_datetime)
 
+# from_timestamp = time.strptime(date1, "%Y-%m-%d %H:%M:%S")
+
+# from_datetime = '2021-04-01 00:00:00'
+# from_timestamp = exchange.parse8601(from_datetime)
+from_timestamp = exchange.parse8601(date1)
+
+# now_datetime = time.strptime(date2, "%Y-%m-%d %H:%M:%S")
+now = exchange.parse8601(date2)
 # -----------------------------------------------------------------------------
 
-now = exchange.milliseconds()
+# now = exchange.milliseconds()
 
 # -----------------------------------------------------------------------------
 
@@ -66,7 +114,7 @@ while from_timestamp < now:
     try:
 
         print(exchange.milliseconds(), 'Fetching candles starting from', exchange.iso8601(from_timestamp))
-        ohlcvs = exchange.fetch_ohlcv(sc_pair, '1m', from_timestamp)
+        ohlcvs = exchange.fetch_ohlcv(sc_pair_with_slash, '1m', from_timestamp)
         print(exchange.milliseconds(), 'Fetched', len(ohlcvs), 'candles')
         first = ohlcvs[0][0]
         last = ohlcvs[-1][0]
@@ -95,9 +143,14 @@ for candle in data:
     close_data.append(candle[4])
     volume_data.append(candle[5])
 
+# turn api result calls to dataframe, excluding, shall we consider candles with no volume?
+df = DataFrame(data, columns=['timestamp','open','high','low','close','volume'])
+
+# can join path elements with / operator
+df.to_csv(output_dir / output_file, sep=';', decimal=',')
+
 # Create figure with secondary y-axis
 fig = make_subplots(specs=[[{"secondary_y": True}]])
-
 
 # plot the candlesticks
 fig.add_trace(go.Candlestick(name='<b>Candlesticks</b>', x=dates,
@@ -110,17 +163,17 @@ fig.add_trace(go.Bar(name='<b>Volume Bars</b>', x=dates, y=volume_data),
                 secondary_y=False)
 
 fig.update_layout(
-    title=exchange_name+ ":" +sc_pair,
+    title=exchange_name+ ":" +sc_pair_with_slash,
     yaxis_title='<b>Volume</b>',
-    xaxis_title='<b>Datetime</b>',
-    # shapes = [dict(
-    #     y0='2016-12-09', y1='2016-12-09', x0=0, x1=1, xref='x', yref='paper',
-    #     line_width=2)],
-    # # annotations=[dict(
-    # #     x='2016-12-09', y=0.05, xref='x', yref='paper',
-    # #     showarrow=False, xanchor='left', text='Increase Period Begins')]
-)
+    xaxis_title='<b>Datetime</b>')
+
+fig.add_hline(y=1.002, line_dash="dot",
+              annotation_text="lower ref.",
+              annotation_position="bottom right")
+
+
 fig.update_yaxes(title_text="<b>$ Price</b>", secondary_y=True)
 
 fig.layout.yaxis2.showgrid=False
-fig.show()
+
+# fig.show()
