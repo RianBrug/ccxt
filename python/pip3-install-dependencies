@@ -4,3 +4,5 @@ pip3 install plotly==4.12.0
 pip3 install matplotlib
 pip3 install ipython
 pip3 install sqlalchemy
+pip3 install gspread oauth2client
+pip3 install chart-studio

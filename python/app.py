@@ -21,11 +21,6 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 from pandas import DataFrame
-
-from sqlalchemy import create_engine # database connection
-from IPython.display import display
-from pathlib import Path
-
 # -----------------------------------------------------------------------------
 # common constants
 
