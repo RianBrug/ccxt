@@ -27,10 +27,14 @@ from pandas import DataFrame
 msec = 1000
 minute = 60 * msec
 hold = 30
-#
-exchange_name = ('huobipro')
-sc_pair = 'USDTHUSD';
-sc_pair_with_slash = 'USDT/HUSD';
+
+exchange_name = ('gateio')
+sc_pair = 'BUSDUSDT';
+sc_pair_with_slash = 'BUSD/USDT';
+
+# exchange_name = ('huobipro')
+# sc_pair = 'USDTHUSD';
+# sc_pair_with_slash = 'USDT/HUSD';
 
 # exchange_name = ('binance')
 # sc_pair = 'SUSDUSDT';
@@ -64,8 +68,8 @@ sc_pair_with_slash = 'USDT/HUSD';
 # sc_pair = 'TUSDUSDT';
 # sc_pair_with_slash = 'TUSD/USDT';
 
-date1 = '2021-04-19 00:00:00'
-date2 = '2021-05-19 00:00:00'
+date1 = '2021-04-04 00:00:00'
+date2 = '2021-06-04 00:00:00'
 
 path = '/home/ribs/Documents/ccxt/python/csv_exports'
 csv_file_name = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
