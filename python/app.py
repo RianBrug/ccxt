@@ -68,7 +68,7 @@ sc_pair_with_slash = 'BUSD/USDT';
 # sc_pair = 'TUSDUSDT';
 # sc_pair_with_slash = 'TUSD/USDT';
 
-date1 = '2021-04-04 00:00:00'
+date1 = '2021-06-03 00:00:00'
 date2 = '2021-06-04 00:00:00'
 
 path = '/home/ribs/Documents/ccxt/python/csv_exports'
@@ -76,14 +76,14 @@ csv_file_name = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
 output_file = os.path.join(path,csv_file_name)
 
 output_file = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
-output_dir = Path('/home/ribs/Documents/ccxt/python/csv_exports')
+output_dir = os.path.join('/home/ribs/Documents/ccxt/python/csv_exports/')
 
-output_dir.mkdir(parents=True, exist_ok=True)
+# output_dir.mkdir(parents=True, exist_ok=True)
 
 
 # -----------------------------------------------------------------------------
 
-exchange = ccxt.huobipro({
+exchange = ccxt.gateio({
     'rateLimit': 1000,
     'enableRateLimit': True,
     # 'verbose': True,
@@ -146,7 +146,7 @@ for candle in data:
 df = DataFrame(data, columns=['timestamp','open','high','low','close','volume'])
 
 # can join path elements with / operator
-df.to_csv(output_dir / output_file, sep=';', decimal=',')
+df.to_csv(output_dir+output_file, sep=';', decimal=',')
 
 # Create figure with secondary y-axis
 fig = make_subplots(specs=[[{"secondary_y": True}]])
