@@ -476,7 +476,6 @@ declare module 'ccxt' {
     export class coinex extends Exchange {}
     export class coinfalcon extends Exchange {}
     export class coinfloor extends Exchange {}
-    export class coingi extends Exchange {}
     export class coinmarketcap extends Exchange {}
     export class coinmate extends Exchange {}
     export class coinone extends Exchange {}
@@ -487,7 +486,6 @@ declare module 'ccxt' {
     export class deribit extends Exchange {}
     export class digifinex extends Exchange {}
     export class equos extends Exchange {}
-    export class eterbase extends Exchange {}
     export class exmo extends Exchange {}
     export class exx extends Exchange {}
     export class flowbtc extends Exchange {}
@@ -507,7 +505,6 @@ declare module 'ccxt' {
     export class kraken extends Exchange {}
     export class kucoin extends Exchange {}
     export class kuna extends Exchange {}
-    export class lakebtc extends Exchange {}
     export class latoken extends Exchange {}
     export class lbank extends Exchange {}
     export class liquid extends Exchange {}
@@ -520,6 +517,7 @@ declare module 'ccxt' {
     export class oceanex extends Exchange {}
     export class okcoin extends okex {}
     export class okex extends Exchange {}
+    export class okex5 extends Exchange {}
     export class paymium extends Exchange {}
     export class phemex extends Exchange {}
     export class poloniex extends Exchange {}
@@ -537,7 +535,6 @@ declare module 'ccxt' {
     export class vcc extends Exchange {}
     export class wavesexchange extends Exchange {}
     export class whitebit extends Exchange {}
-    export class xbtce extends Exchange {}
     export class xena extends Exchange {}
     export class yobit extends Exchange {}
     export class zaif extends Exchange {}
@@ -598,7 +595,6 @@ declare module 'ccxt' {
         | 'coinex'
         | 'coinfalcon'
         | 'coinfloor'
-        | 'coingi'
         | 'coinmarketcap'
         | 'coinmate'
         | 'coinone'
@@ -609,7 +605,6 @@ declare module 'ccxt' {
         | 'deribit'
         | 'digifinex'
         | 'equos'
-        | 'eterbase'
         | 'exmo'
         | 'exx'
         | 'flowbtc'
@@ -629,7 +624,6 @@ declare module 'ccxt' {
         | 'kraken'
         | 'kucoin'
         | 'kuna'
-        | 'lakebtc'
         | 'latoken'
         | 'lbank'
         | 'liquid'
@@ -642,6 +636,7 @@ declare module 'ccxt' {
         | 'oceanex'
         | 'okcoin'
         | 'okex'
+        | 'okex5'
         | 'paymium'
         | 'phemex'
         | 'poloniex'
@@ -659,7 +654,6 @@ declare module 'ccxt' {
         | 'vcc'
         | 'wavesexchange'
         | 'whitebit'
-        | 'xbtce'
         | 'xena'
         | 'yobit'
         | 'zaif'

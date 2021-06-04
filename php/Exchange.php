@@ -36,7 +36,7 @@ use Elliptic\EdDSA;
 use BN\BN;
 use Exception;
 
-$version = '1.50.6';
+$version = '1.50.88';
 
 // rounding mode
 const TRUNCATE = 0;
@@ -55,7 +55,7 @@ const PAD_WITH_ZERO = 1;
 
 class Exchange {
 
-    const VERSION = '1.50.6';
+    const VERSION = '1.50.88';
 
     private static $base58_alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
     private static $base58_encoder = null;
@@ -114,7 +114,6 @@ class Exchange {
         'coinex',
         'coinfalcon',
         'coinfloor',
-        'coingi',
         'coinmarketcap',
         'coinmate',
         'coinone',
@@ -125,7 +124,6 @@ class Exchange {
         'deribit',
         'digifinex',
         'equos',
-        'eterbase',
         'exmo',
         'exx',
         'flowbtc',
@@ -145,7 +143,6 @@ class Exchange {
         'kraken',
         'kucoin',
         'kuna',
-        'lakebtc',
         'latoken',
         'lbank',
         'liquid',
@@ -158,6 +155,7 @@ class Exchange {
         'oceanex',
         'okcoin',
         'okex',
+        'okex5',
         'paymium',
         'phemex',
         'poloniex',
@@ -175,7 +173,6 @@ class Exchange {
         'vcc',
         'wavesexchange',
         'whitebit',
-        'xbtce',
         'xena',
         'yobit',
         'zaif',
@@ -225,6 +222,7 @@ class Exchange {
         'numberToString' => 'number_to_string',
         'precisionFromString' => 'precision_from_string',
         'decimalToPrecision' => 'decimal_to_precision',
+        'omitZero' => 'omit_zero',
         'isJsonEncodedObject' => 'is_json_encoded_object',
         'stringToBinary' => 'string_to_binary',
         'stringToBase64' => 'string_to_base64',
@@ -3071,5 +3069,15 @@ class Exchange {
             return null;
         }
         return '1e' . Precise::string_neg($precision);
+    }
+
+    public function omit_zero($string_number) {
+        if ($string_number === null) {
+            return null;
+        }
+        if (floatval($string_number) === null) {
+            return null;
+        }
+        return $string_number;
     }
 }
