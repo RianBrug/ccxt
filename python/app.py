@@ -32,10 +32,30 @@ from pathlib import Path
 msec = 1000
 minute = 60 * msec
 hold = 30
-#
-exchange_name = ('huobipro')
-sc_pair = 'USDTHUSD';
-sc_pair_with_slash = 'USDT/HUSD';
+
+exchange_name = ('gateio')
+# sc_pair = 'FEIUSDT';
+# sc_pair = 'USDCUSDT';
+sc_pair = 'BUSDUSDT';
+# sc_pair_with_slash = 'FEI/USDT';
+# sc_pair_with_slash = 'USDC/USDT';
+sc_pair_with_slash = 'BUSD/USDT';
+
+# exchange_name = ('cex')
+# sc_pair = 'GUSDUSD';
+# sc_pair_with_slash = 'GUSD/USD';
+
+# exchange_name = ('gateio')
+# sc_pair = 'BUSDUSDT';
+# sc_pair_with_slash = 'BUSD/USDT';
+
+# exchange_name = ('huobipro')
+# sc_pair = 'USDTHUSD';
+# sc_pair_with_slash = 'USDT/HUSD';
+
+# exchange_name = ('huobipro')
+# sc_pair = 'USDTHUSD';
+# sc_pair_with_slash = 'USDT/HUSD';
 
 # exchange_name = ('binance')
 # sc_pair = 'SUSDUSDT';
@@ -69,26 +89,30 @@ sc_pair_with_slash = 'USDT/HUSD';
 # sc_pair = 'TUSDUSDT';
 # sc_pair_with_slash = 'TUSD/USDT';
 
-date1 = '2021-04-19 00:00:00'
-date2 = '2021-05-19 00:00:00'
+date1 = '2021-04-22 00:00:00'
+date2 = '2021-06-04 00:00:00'
+
 
 path = '/home/ribs/Documents/ccxt/python/csv_exports'
 csv_file_name = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
 output_file = os.path.join(path,csv_file_name)
 
 output_file = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
-output_dir = Path('/home/ribs/Documents/ccxt/python/csv_exports')
 
-output_dir.mkdir(parents=True, exist_ok=True)
+output_dir = os.path.join('/home/ribs/Documents/ccxt/python/csv_exports/')
 
+# output_dir.mkdir(parents=True, exist_ok=True)
 
 # -----------------------------------------------------------------------------
 
-exchange = ccxt.huobipro({
+exchange = ccxt.gateio({
+
     'rateLimit': 1000,
     'enableRateLimit': True,
     # 'verbose': True,
 })
+
+print(exchange.timeframes)
 
 # -----------------------------------------------------------------------------
 
@@ -116,6 +140,7 @@ while from_timestamp < now:
         print(exchange.milliseconds(), 'Fetching candles starting from', exchange.iso8601(from_timestamp))
         ohlcvs = exchange.fetch_ohlcv(sc_pair_with_slash, '1m', from_timestamp)
         print(exchange.milliseconds(), 'Fetched', len(ohlcvs), 'candles')
+
         first = ohlcvs[0][0]
         last = ohlcvs[-1][0]
         print('First candle epoch', first, exchange.iso8601(first))
@@ -147,7 +172,8 @@ for candle in data:
 df = DataFrame(data, columns=['timestamp','open','high','low','close','volume'])
 
 # can join path elements with / operator
-df.to_csv(output_dir / output_file, sep=';', decimal=',')
+df.to_csv(output_dir+output_file, sep=';', decimal=',')
+
 
 # Create figure with secondary y-axis
 fig = make_subplots(specs=[[{"secondary_y": True}]])
