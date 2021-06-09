@@ -21,6 +21,11 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 from pandas import DataFrame
+
+from sqlalchemy import create_engine # database connection
+from IPython.display import display
+from pathlib import Path
+
 # -----------------------------------------------------------------------------
 # common constants
 
@@ -44,6 +49,11 @@ sc_pair_with_slash = 'BUSD/USDT';
 # sc_pair = 'BUSDUSDT';
 # sc_pair_with_slash = 'BUSD/USDT';
 
+# exchange_name = ('huobipro')
+# sc_pair = 'USDTHUSD';
+# sc_pair_with_slash = 'USDT/HUSD';
+=======
+#
 # exchange_name = ('huobipro')
 # sc_pair = 'USDTHUSD';
 # sc_pair_with_slash = 'USDT/HUSD';
@@ -83,19 +93,21 @@ sc_pair_with_slash = 'BUSD/USDT';
 date1 = '2021-04-22 00:00:00'
 date2 = '2021-06-04 00:00:00'
 
+
 path = '/home/ribs/Documents/ccxt/python/csv_exports'
 csv_file_name = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
 output_file = os.path.join(path,csv_file_name)
 
 output_file = exchange_name+'_'+sc_pair+'_'+date1+'_'+date2+'.csv'
+
 output_dir = os.path.join('/home/ribs/Documents/ccxt/python/csv_exports/')
 
 # output_dir.mkdir(parents=True, exist_ok=True)
 
-
 # -----------------------------------------------------------------------------
 
 exchange = ccxt.gateio({
+
     'rateLimit': 1000,
     'enableRateLimit': True,
     # 'verbose': True,
@@ -129,13 +141,13 @@ while from_timestamp < now:
         print(exchange.milliseconds(), 'Fetching candles starting from', exchange.iso8601(from_timestamp))
         ohlcvs = exchange.fetch_ohlcv(sc_pair_with_slash, '1m', from_timestamp)
         print(exchange.milliseconds(), 'Fetched', len(ohlcvs), 'candles')
-        if(len(ohlcvs) != 0):
-            first = ohlcvs[0][0]
-            last = ohlcvs[-1][0]
-            print('First candle epoch', first, exchange.iso8601(first))
-            print('Last candle epoch', last, exchange.iso8601(last))
-            from_timestamp += len(ohlcvs) * minute
-            data += ohlcvs
+
+        first = ohlcvs[0][0]
+        last = ohlcvs[-1][0]
+        print('First candle epoch', first, exchange.iso8601(first))
+        print('Last candle epoch', last, exchange.iso8601(last))
+        from_timestamp += len(ohlcvs) * minute
+        data += ohlcvs
 
     except (ccxt.ExchangeError, ccxt.AuthenticationError, ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as error:
 
@@ -162,6 +174,7 @@ df = DataFrame(data, columns=['timestamp','open','high','low','close','volume'])
 
 # can join path elements with / operator
 df.to_csv(output_dir+output_file, sep=';', decimal=',')
+
 
 # Create figure with secondary y-axis
 fig = make_subplots(specs=[[{"secondary_y": True}]])
