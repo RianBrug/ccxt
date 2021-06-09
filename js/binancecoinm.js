@@ -187,7 +187,8 @@ module.exports = class binancecoinm extends binance {
         let market = undefined;
         if (symbol !== undefined) {
             market = this.market (symbol);
-            request['symbol'] = market['id'];
+            // not the unified id here
+            request['pair'] = market['info']['pair'];
         }
         const response = await this.dapiPrivateGetPositionRisk (this.extend (request, params));
         if (symbol === undefined) {
@@ -240,7 +241,7 @@ module.exports = class binancecoinm extends binance {
         return await this.dapiPrivatePostLeverage (this.extend (request, params));
     }
 
-    async setMode (symbol, marginType, params = {}) {
+    async setMarginMode (symbol, marginType, params = {}) {
         //
         // { "code": -4048 , "msg": "Margin type cannot be changed if there exists position." }
         //

@@ -31,8 +31,10 @@ module.exports = class binance extends Exchange {
                 'fetchDepositAddress': true,
                 'fetchDeposits': true,
                 'fetchFundingFees': true,
+                'fetchFundingHistory': true,
                 'fetchFundingRate': true,
                 'fetchFundingRates': true,
+                'fetchIsolatedPositions': true,
                 'fetchMarkets': true,
                 'fetchMyTrades': true,
                 'fetchOHLCV': true,
@@ -50,6 +52,8 @@ module.exports = class binance extends Exchange {
                 'fetchTradingFees': true,
                 'fetchTransactions': false,
                 'fetchWithdrawals': true,
+                'setLeverage': true,
+                'setMarginMode': true,
                 'withdraw': true,
                 'transfer': true,
                 'fetchTransfers': true,
@@ -1018,7 +1022,7 @@ module.exports = class binance extends Exchange {
             const margin = this.safeValue (market, 'isMarginTradingAllowed', false);
             let contractSize = undefined;
             if (future || delivery) {
-                contractSize = this.safeFloat (market, 'contractSize', 1);
+                contractSize = this.safeString (market, 'contractSize', '1');
             }
             const entry = {
                 'id': id,
@@ -1030,6 +1034,7 @@ module.exports = class binance extends Exchange {
                 'quoteId': quoteId,
                 'info': market,
                 'spot': spot,
+                'type': type,
                 'margin': margin,
                 'future': future,
                 'delivery': delivery,
@@ -3215,7 +3220,6 @@ module.exports = class binance extends Exchange {
         const maintenanceMarginString = this.safeString (position, 'maintMargin');
         const maintenanceMargin = this.parseNumber (maintenanceMarginString);
         const entryPriceString = this.safeString (position, 'entryPrice');
-        const entryPriceFloat = parseFloat (entryPriceString);
         let entryPrice = this.parseNumber (entryPriceString);
         const notionalString = this.safeString2 (position, 'notional', 'notionalValue');
         const notionalStringAbs = Precise.stringAbs (notionalString);
@@ -3223,11 +3227,12 @@ module.exports = class binance extends Exchange {
         const notionalFloatAbs = parseFloat (notionalStringAbs);
         const notional = this.parseNumber (Precise.stringAbs (notionalString));
         let contractsString = this.safeString (position, 'positionAmt');
+        let contractsStringAbs = Precise.stringAbs (contractsString);
         if (contractsString === undefined) {
-            const contractsRounded = Math.round (notionalFloat * entryPriceFloat / market['contractSize']);
-            contractsString = contractsRounded.toString ();
+            const entryNotional = Precise.stringMul (Precise.stringMul (leverageString, initialMarginString), entryPriceString);
+            contractsString = Precise.stringDiv (entryNotional, market['contractSize']);
+            contractsStringAbs = Precise.stringDiv (Precise.stringAdd (contractsString, '0.5'), '1', 0);
         }
-        const contractsStringAbs = Precise.stringAbs (contractsString);
         const contracts = this.parseNumber (contractsStringAbs);
         const leverageBracket = this.options['leverageBrackets'][symbol];
         let maintenanceMarginPercentageString = undefined;
@@ -3262,6 +3267,7 @@ module.exports = class binance extends Exchange {
         let marginRatio = undefined;
         let side = undefined;
         let percentage = undefined;
+        let liquidationPriceStringRaw = undefined;
         let liquidationPrice = undefined;
         if (notionalFloat === 0.0) {
             entryPrice = undefined;
@@ -3287,22 +3293,39 @@ module.exports = class binance extends Exchange {
                 }
                 const leftSide = Precise.stringDiv (walletBalance, Precise.stringMul (contractsStringAbs, onePlusMaintenanceMarginPercentageString));
                 const rightSide = Precise.stringDiv (entryPriceSignString, onePlusMaintenanceMarginPercentageString);
-                const pricePrecision = market['precision']['price'];
-                const pricePrecisionPlusOne = pricePrecision + 1;
-                const pricePrecisionPlusOneString = pricePrecisionPlusOne.toString ();
-                // round half up
-                const rounder = new Precise ('5e-' + pricePrecisionPlusOneString);
-                const rounderString = rounder.toString ();
-                const liquidationPriceStringRaw = Precise.stringAdd (leftSide, rightSide);
-                const liquidationPriceRoundedString = Precise.stringAdd (rounderString, liquidationPriceStringRaw);
-                let truncatedLiquidationPrice = Precise.stringDiv (liquidationPriceRoundedString, '1', pricePrecision);
-                if (truncatedLiquidationPrice[0] === '-') {
-                    // user cannot be liquidated
-                    // since he has more collateral than the size of the position
-                    truncatedLiquidationPrice = undefined;
+                liquidationPriceStringRaw = Precise.stringAdd (leftSide, rightSide);
+            } else {
+                // calculate liquidation price
+                //
+                // liquidationPrice = (contracts * contractSize(±1 - mmp)) / (±1/entryPrice * contracts * contractSize - walletBalance)
+                //
+                let onePlusMaintenanceMarginPercentageString = undefined;
+                let entryPriceSignString = entryPriceString;
+                if (side === 'short') {
+                    onePlusMaintenanceMarginPercentageString = Precise.stringSub ('1', maintenanceMarginPercentageString);
+                } else {
+                    onePlusMaintenanceMarginPercentageString = Precise.stringSub ('-1', maintenanceMarginPercentageString);
+                    entryPriceSignString = Precise.stringMul ('-1', entryPriceSignString);
                 }
-                liquidationPrice = this.parseNumber (truncatedLiquidationPrice);
+                const size = Precise.stringMul (contractsStringAbs, market['contractSize']);
+                const leftSide = Precise.stringMul (size, onePlusMaintenanceMarginPercentageString);
+                const rightSide = Precise.stringSub (Precise.stringMul (Precise.stringDiv ('1', entryPriceSignString), size), walletBalance);
+                liquidationPriceStringRaw = Precise.stringDiv (leftSide, rightSide);
             }
+            const pricePrecision = market['precision']['price'];
+            const pricePrecisionPlusOne = pricePrecision + 1;
+            const pricePrecisionPlusOneString = pricePrecisionPlusOne.toString ();
+            // round half up
+            const rounder = new Precise ('5e-' + pricePrecisionPlusOneString);
+            const rounderString = rounder.toString ();
+            const liquidationPriceRoundedString = Precise.stringAdd (rounderString, liquidationPriceStringRaw);
+            let truncatedLiquidationPrice = Precise.stringDiv (liquidationPriceRoundedString, '1', pricePrecision);
+            if (truncatedLiquidationPrice[0] === '-') {
+                // user cannot be liquidated
+                // since he has more collateral than the size of the position
+                truncatedLiquidationPrice = undefined;
+            }
+            liquidationPrice = this.parseNumber (truncatedLiquidationPrice);
         }
         return {
             'info': position,
@@ -3500,6 +3523,141 @@ module.exports = class binance extends Exchange {
         const account = await this[method] (query);
         const result = this.parseAccountPositions (account);
         return this.filterByArray (result, 'symbol', symbols, false);
+    }
+
+    async fetchIsolatedPositions (symbol = undefined, params = {}) {
+        // only supported in usdm futures
+        await this.loadMarkets ();
+        await this.loadLeverageBrackets ();
+        const request = {};
+        let market = undefined;
+        let method = undefined;
+        let defaultType = 'future';
+        if (symbol !== undefined) {
+            market = this.market (symbol);
+            request['symbol'] = market['id'];
+            if (market['linear']) {
+                defaultType = 'future';
+            } else if (market['inverse']) {
+                defaultType = 'delivery';
+            } else {
+                throw NotSupported (this.id + ' fetchIsolatedPositions() supports linear and inverse contracts only');
+            }
+        }
+        defaultType = this.safeString2 (this.options, 'fetchIsolatedPositions', 'defaultType', defaultType);
+        const type = this.safeString (params, 'type', defaultType);
+        params = this.omit (params, 'type');
+        if ((type === 'future') || (type === 'linear')) {
+            method = 'fapiPrivateGetPositionRisk';
+        } else if ((type === 'delivery') || (type === 'inverse')) {
+            method = 'dapiPrivateGetPositionRisk';
+        } else {
+            throw NotSupported (this.id + ' fetchIsolatedPositions() supports linear and inverse contracts only');
+        }
+        const response = await this[method] (this.extend (request, params));
+        if (symbol === undefined) {
+            const result = [];
+            for (let i = 0; i < response.length; i++) {
+                const parsed = this.parsePositionRisk (response[i], market);
+                if (parsed['marginType'] === 'isolated') {
+                    result.push (parsed);
+                }
+            }
+            return result;
+        } else {
+            return this.parsePositionRisk (this.safeValue (response, 0), market);
+        }
+    }
+
+    async fetchFundingHistory (symbol = undefined, since = undefined, limit = undefined, params = {}) {
+        await this.loadMarkets ();
+        let market = undefined;
+        let method = undefined;
+        let defaultType = 'future';
+        const request = {
+            'incomeType': 'FUNDING_FEE', // "TRANSFER"，"WELCOME_BONUS", "REALIZED_PNL"，"FUNDING_FEE", "COMMISSION" and "INSURANCE_CLEAR"
+        };
+        if (symbol !== undefined) {
+            market = this.market (symbol);
+            request['symbol'] = market['id'];
+            if (market['linear']) {
+                defaultType = 'future';
+            } else if (market['inverse']) {
+                defaultType = 'delivery';
+            } else {
+                throw NotSupported (this.id + ' fetchFundingHistory() supports linear and inverse contracts only');
+            }
+        }
+        if (since !== undefined) {
+            request['startTime'] = since;
+        }
+        if (limit !== undefined) {
+            request['limit'] = limit;
+        }
+        defaultType = this.safeString2 (this.options, 'fetchFundingHistory', 'defaultType', defaultType);
+        const type = this.safeString (params, 'type', defaultType);
+        params = this.omit (params, 'type');
+        if ((type === 'future') || (type === 'linear')) {
+            method = 'fapiPrivateGetIncome';
+        } else if ((type === 'delivery') || (type === 'inverse')) {
+            method = 'dapiPrivateGetIncome';
+        } else {
+            throw NotSupported (this.id + ' fetchFundingHistory() supports linear and inverse contracts only');
+        }
+        const response = await this[method] (this.extend (request, params));
+        return this.parseIncomes (response, market, since, limit);
+    }
+
+    async setLeverage (symbol, leverage, params = {}) {
+        // WARNING: THIS WILL INCREASE LIQUIDATION PRICE FOR OPEN ISOLATED LONG POSITIONS
+        // AND DECREASE LIQUIDATION PRICE FOR OPEN ISOLATED SHORT POSITIONS
+        if ((leverage < 1) || (leverage > 125)) {
+            throw new BadRequest (this.id + ' leverage should be between 1 and 125');
+        }
+        await this.loadMarkets ();
+        const market = this.market (symbol);
+        let method = undefined;
+        if (market['linear']) {
+            method = 'fapiPrivatePostLeverage';
+        } else if (market['inverse']) {
+            method = 'dapiPrivatePostLeverage';
+        } else {
+            throw NotSupported (this.id + ' setLeverage() supports linear and inverse contracts only');
+        }
+        const request = {
+            'symbol': market['id'],
+            'leverage': leverage,
+        };
+        return await this[method] (this.extend (request, params));
+    }
+
+    async setMarginMode (symbol, marginType, params = {}) {
+        //
+        // { "code": -4048 , "msg": "Margin type cannot be changed if there exists position." }
+        //
+        // or
+        //
+        // { "code": 200, "msg": "success" }
+        //
+        marginType = marginType.toUpperCase ();
+        if ((marginType !== 'ISOLATED') && (marginType !== 'CROSSED')) {
+            throw new BadRequest (this.id + ' marginType must be either isolated or crossed');
+        }
+        await this.loadMarkets ();
+        const market = this.market (symbol);
+        let method = undefined;
+        if (market['linear']) {
+            method = 'fapiPrivatePostMarginType';
+        } else if (market['inverse']) {
+            method = 'dapiPrivatePostMarginType';
+        } else {
+            throw NotSupported (this.id + ' setMarginMode() supports linear and inverse contracts only');
+        }
+        const request = {
+            'symbol': market['id'],
+            'marginType': marginType,
+        };
+        return await this[method] (this.extend (request, params));
     }
 
     sign (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
