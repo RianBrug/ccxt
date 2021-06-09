@@ -52,8 +52,7 @@ sc_pair_with_slash = 'BUSD/USDT';
 # exchange_name = ('huobipro')
 # sc_pair = 'USDTHUSD';
 # sc_pair_with_slash = 'USDT/HUSD';
-=======
-#
+
 # exchange_name = ('huobipro')
 # sc_pair = 'USDTHUSD';
 # sc_pair_with_slash = 'USDT/HUSD';
