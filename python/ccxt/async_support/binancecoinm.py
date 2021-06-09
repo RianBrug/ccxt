@@ -175,7 +175,8 @@ class binancecoinm(binance):
         market = None
         if symbol is not None:
             market = self.market(symbol)
-            request['symbol'] = market['id']
+            # not the unified id here
+            request['pair'] = market['info']['pair']
         response = await self.dapiPrivateGetPositionRisk(self.extend(request, params))
         if symbol is None:
             result = []
@@ -217,7 +218,7 @@ class binancecoinm(binance):
         }
         return await self.dapiPrivatePostLeverage(self.extend(request, params))
 
-    async def set_mode(self, symbol, marginType, params={}):
+    async def set_margin_mode(self, symbol, marginType, params={}):
         #
         # {"code": -4048 , "msg": "Margin type cannot be changed if there exists position."}
         #

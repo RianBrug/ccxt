@@ -49,8 +49,10 @@ class binance(Exchange):
                 'fetchDepositAddress': True,
                 'fetchDeposits': True,
                 'fetchFundingFees': True,
+                'fetchFundingHistory': True,
                 'fetchFundingRate': True,
                 'fetchFundingRates': True,
+                'fetchIsolatedPositions': True,
                 'fetchMarkets': True,
                 'fetchMyTrades': True,
                 'fetchOHLCV': True,
@@ -68,6 +70,8 @@ class binance(Exchange):
                 'fetchTradingFees': True,
                 'fetchTransactions': False,
                 'fetchWithdrawals': True,
+                'setLeverage': True,
+                'setMarginMode': True,
                 'withdraw': True,
                 'transfer': True,
                 'fetchTransfers': True,
@@ -1019,7 +1023,7 @@ class binance(Exchange):
             margin = self.safe_value(market, 'isMarginTradingAllowed', False)
             contractSize = None
             if future or delivery:
-                contractSize = self.safe_float(market, 'contractSize', 1)
+                contractSize = self.safe_string(market, 'contractSize', '1')
             entry = {
                 'id': id,
                 'lowercaseId': lowercaseId,
@@ -1030,6 +1034,7 @@ class binance(Exchange):
                 'quoteId': quoteId,
                 'info': market,
                 'spot': spot,
+                'type': type,
                 'margin': margin,
                 'future': future,
                 'delivery': delivery,
@@ -3056,7 +3061,6 @@ class binance(Exchange):
         maintenanceMarginString = self.safe_string(position, 'maintMargin')
         maintenanceMargin = self.parse_number(maintenanceMarginString)
         entryPriceString = self.safe_string(position, 'entryPrice')
-        entryPriceFloat = float(entryPriceString)
         entryPrice = self.parse_number(entryPriceString)
         notionalString = self.safe_string_2(position, 'notional', 'notionalValue')
         notionalStringAbs = Precise.string_abs(notionalString)
@@ -3064,10 +3068,11 @@ class binance(Exchange):
         notionalFloatAbs = float(notionalStringAbs)
         notional = self.parse_number(Precise.string_abs(notionalString))
         contractsString = self.safe_string(position, 'positionAmt')
-        if contractsString is None:
-            contractsRounded = int(round(notionalFloat * entryPriceFloat / market['contractSize']))
-            contractsString = str(contractsRounded)
         contractsStringAbs = Precise.string_abs(contractsString)
+        if contractsString is None:
+            entryNotional = Precise.string_mul(Precise.string_mul(leverageString, initialMarginString), entryPriceString)
+            contractsString = Precise.string_div(entryNotional, market['contractSize'])
+            contractsStringAbs = Precise.string_div(Precise.string_add(contractsString, '0.5'), '1', 0)
         contracts = self.parse_number(contractsStringAbs)
         leverageBracket = self.options['leverageBrackets'][symbol]
         maintenanceMarginPercentageString = None
@@ -3098,6 +3103,7 @@ class binance(Exchange):
         marginRatio = None
         side = None
         percentage = None
+        liquidationPriceStringRaw = None
         liquidationPrice = None
         if notionalFloat == 0.0:
             entryPrice = None
@@ -3122,20 +3128,36 @@ class binance(Exchange):
                     entryPriceSignString = Precise.string_mul('-1', entryPriceSignString)
                 leftSide = Precise.string_div(walletBalance, Precise.string_mul(contractsStringAbs, onePlusMaintenanceMarginPercentageString))
                 rightSide = Precise.string_div(entryPriceSignString, onePlusMaintenanceMarginPercentageString)
-                pricePrecision = market['precision']['price']
-                pricePrecisionPlusOne = pricePrecision + 1
-                pricePrecisionPlusOneString = str(pricePrecisionPlusOne)
-                # round half up
-                rounder = Precise('5e-' + pricePrecisionPlusOneString)
-                rounderString = str(rounder)
                 liquidationPriceStringRaw = Precise.string_add(leftSide, rightSide)
-                liquidationPriceRoundedString = Precise.string_add(rounderString, liquidationPriceStringRaw)
-                truncatedLiquidationPrice = Precise.string_div(liquidationPriceRoundedString, '1', pricePrecision)
-                if truncatedLiquidationPrice[0] == '-':
-                    # user cannot be liquidated
-                    # since he has more collateral than the size of the position
-                    truncatedLiquidationPrice = None
-                liquidationPrice = self.parse_number(truncatedLiquidationPrice)
+            else:
+                # calculate liquidation price
+                #
+                # liquidationPrice = (contracts * contractSize(±1 - mmp)) / (±1/entryPrice * contracts * contractSize - walletBalance)
+                #
+                onePlusMaintenanceMarginPercentageString = None
+                entryPriceSignString = entryPriceString
+                if side == 'short':
+                    onePlusMaintenanceMarginPercentageString = Precise.string_sub('1', maintenanceMarginPercentageString)
+                else:
+                    onePlusMaintenanceMarginPercentageString = Precise.string_sub('-1', maintenanceMarginPercentageString)
+                    entryPriceSignString = Precise.string_mul('-1', entryPriceSignString)
+                size = Precise.string_mul(contractsStringAbs, market['contractSize'])
+                leftSide = Precise.string_mul(size, onePlusMaintenanceMarginPercentageString)
+                rightSide = Precise.string_sub(Precise.string_mul(Precise.string_div('1', entryPriceSignString), size), walletBalance)
+                liquidationPriceStringRaw = Precise.string_div(leftSide, rightSide)
+            pricePrecision = market['precision']['price']
+            pricePrecisionPlusOne = pricePrecision + 1
+            pricePrecisionPlusOneString = str(pricePrecisionPlusOne)
+            # round half up
+            rounder = Precise('5e-' + pricePrecisionPlusOneString)
+            rounderString = str(rounder)
+            liquidationPriceRoundedString = Precise.string_add(rounderString, liquidationPriceStringRaw)
+            truncatedLiquidationPrice = Precise.string_div(liquidationPriceRoundedString, '1', pricePrecision)
+            if truncatedLiquidationPrice[0] == '-':
+                # user cannot be liquidated
+                # since he has more collateral than the size of the position
+                truncatedLiquidationPrice = None
+            liquidationPrice = self.parse_number(truncatedLiquidationPrice)
         return {
             'info': position,
             'symbol': symbol,
@@ -3318,6 +3340,122 @@ class binance(Exchange):
         account = await getattr(self, method)(query)
         result = self.parse_account_positions(account)
         return self.filter_by_array(result, 'symbol', symbols, False)
+
+    async def fetch_isolated_positions(self, symbol=None, params={}):
+        # only supported in usdm futures
+        await self.load_markets()
+        await self.load_leverage_brackets()
+        request = {}
+        market = None
+        method = None
+        defaultType = 'future'
+        if symbol is not None:
+            market = self.market(symbol)
+            request['symbol'] = market['id']
+            if market['linear']:
+                defaultType = 'future'
+            elif market['inverse']:
+                defaultType = 'delivery'
+            else:
+                raise NotSupported(self.id + ' fetchIsolatedPositions() supports linear and inverse contracts only')
+        defaultType = self.safe_string_2(self.options, 'fetchIsolatedPositions', 'defaultType', defaultType)
+        type = self.safe_string(params, 'type', defaultType)
+        params = self.omit(params, 'type')
+        if (type == 'future') or (type == 'linear'):
+            method = 'fapiPrivateGetPositionRisk'
+        elif (type == 'delivery') or (type == 'inverse'):
+            method = 'dapiPrivateGetPositionRisk'
+        else:
+            raise NotSupported(self.id + ' fetchIsolatedPositions() supports linear and inverse contracts only')
+        response = await getattr(self, method)(self.extend(request, params))
+        if symbol is None:
+            result = []
+            for i in range(0, len(response)):
+                parsed = self.parse_position_risk(response[i], market)
+                if parsed['marginType'] == 'isolated':
+                    result.append(parsed)
+            return result
+        else:
+            return self.parse_position_risk(self.safe_value(response, 0), market)
+
+    async def fetch_funding_history(self, symbol=None, since=None, limit=None, params={}):
+        await self.load_markets()
+        market = None
+        method = None
+        defaultType = 'future'
+        request = {
+            'incomeType': 'FUNDING_FEE',  # "TRANSFER"，"WELCOME_BONUS", "REALIZED_PNL"，"FUNDING_FEE", "COMMISSION" and "INSURANCE_CLEAR"
+        }
+        if symbol is not None:
+            market = self.market(symbol)
+            request['symbol'] = market['id']
+            if market['linear']:
+                defaultType = 'future'
+            elif market['inverse']:
+                defaultType = 'delivery'
+            else:
+                raise NotSupported(self.id + ' fetchFundingHistory() supports linear and inverse contracts only')
+        if since is not None:
+            request['startTime'] = since
+        if limit is not None:
+            request['limit'] = limit
+        defaultType = self.safe_string_2(self.options, 'fetchFundingHistory', 'defaultType', defaultType)
+        type = self.safe_string(params, 'type', defaultType)
+        params = self.omit(params, 'type')
+        if (type == 'future') or (type == 'linear'):
+            method = 'fapiPrivateGetIncome'
+        elif (type == 'delivery') or (type == 'inverse'):
+            method = 'dapiPrivateGetIncome'
+        else:
+            raise NotSupported(self.id + ' fetchFundingHistory() supports linear and inverse contracts only')
+        response = await getattr(self, method)(self.extend(request, params))
+        return self.parse_incomes(response, market, since, limit)
+
+    async def set_leverage(self, symbol, leverage, params={}):
+        # WARNING: THIS WILL INCREASE LIQUIDATION PRICE FOR OPEN ISOLATED LONG POSITIONS
+        # AND DECREASE LIQUIDATION PRICE FOR OPEN ISOLATED SHORT POSITIONS
+        if (leverage < 1) or (leverage > 125):
+            raise BadRequest(self.id + ' leverage should be between 1 and 125')
+        await self.load_markets()
+        market = self.market(symbol)
+        method = None
+        if market['linear']:
+            method = 'fapiPrivatePostLeverage'
+        elif market['inverse']:
+            method = 'dapiPrivatePostLeverage'
+        else:
+            raise NotSupported(self.id + ' setLeverage() supports linear and inverse contracts only')
+        request = {
+            'symbol': market['id'],
+            'leverage': leverage,
+        }
+        return await getattr(self, method)(self.extend(request, params))
+
+    async def set_margin_mode(self, symbol, marginType, params={}):
+        #
+        # {"code": -4048 , "msg": "Margin type cannot be changed if there exists position."}
+        #
+        # or
+        #
+        # {"code": 200, "msg": "success"}
+        #
+        marginType = marginType.upper()
+        if (marginType != 'ISOLATED') and (marginType != 'CROSSED'):
+            raise BadRequest(self.id + ' marginType must be either isolated or crossed')
+        await self.load_markets()
+        market = self.market(symbol)
+        method = None
+        if market['linear']:
+            method = 'fapiPrivatePostMarginType'
+        elif market['inverse']:
+            method = 'dapiPrivatePostMarginType'
+        else:
+            raise NotSupported(self.id + ' setMarginMode() supports linear and inverse contracts only')
+        request = {
+            'symbol': market['id'],
+            'marginType': marginType,
+        }
+        return await getattr(self, method)(self.extend(request, params))
 
     def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
         if not (api in self.urls['api']):

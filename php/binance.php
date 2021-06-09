@@ -9,6 +9,7 @@ use Exception; // a common import
 use \ccxt\ExchangeError;
 use \ccxt\AuthenticationError;
 use \ccxt\ArgumentsRequired;
+use \ccxt\BadRequest;
 use \ccxt\InvalidOrder;
 use \ccxt\NotSupported;
 use \ccxt\DDoSProtection;
@@ -36,8 +37,10 @@ class binance extends Exchange {
                 'fetchDepositAddress' => true,
                 'fetchDeposits' => true,
                 'fetchFundingFees' => true,
+                'fetchFundingHistory' => true,
                 'fetchFundingRate' => true,
                 'fetchFundingRates' => true,
+                'fetchIsolatedPositions' => true,
                 'fetchMarkets' => true,
                 'fetchMyTrades' => true,
                 'fetchOHLCV' => true,
@@ -55,6 +58,8 @@ class binance extends Exchange {
                 'fetchTradingFees' => true,
                 'fetchTransactions' => false,
                 'fetchWithdrawals' => true,
+                'setLeverage' => true,
+                'setMarginMode' => true,
                 'withdraw' => true,
                 'transfer' => true,
                 'fetchTransfers' => true,
@@ -1023,7 +1028,7 @@ class binance extends Exchange {
             $margin = $this->safe_value($market, 'isMarginTradingAllowed', false);
             $contractSize = null;
             if ($future || $delivery) {
-                $contractSize = $this->safe_float($market, 'contractSize', 1);
+                $contractSize = $this->safe_string($market, 'contractSize', '1');
             }
             $entry = array(
                 'id' => $id,
@@ -1035,6 +1040,7 @@ class binance extends Exchange {
                 'quoteId' => $quoteId,
                 'info' => $market,
                 'spot' => $spot,
+                'type' => $type,
                 'margin' => $margin,
                 'future' => $future,
                 'delivery' => $delivery,
@@ -3220,7 +3226,6 @@ class binance extends Exchange {
         $maintenanceMarginString = $this->safe_string($position, 'maintMargin');
         $maintenanceMargin = $this->parse_number($maintenanceMarginString);
         $entryPriceString = $this->safe_string($position, 'entryPrice');
-        $entryPriceFloat = floatval($entryPriceString);
         $entryPrice = $this->parse_number($entryPriceString);
         $notionalString = $this->safe_string_2($position, 'notional', 'notionalValue');
         $notionalStringAbs = Precise::string_abs($notionalString);
@@ -3228,11 +3233,12 @@ class binance extends Exchange {
         $notionalFloatAbs = floatval($notionalStringAbs);
         $notional = $this->parse_number(Precise::string_abs($notionalString));
         $contractsString = $this->safe_string($position, 'positionAmt');
-        if ($contractsString === null) {
-            $contractsRounded = (int) round($notionalFloat * $entryPriceFloat / $market['contractSize']);
-            $contractsString = (string) $contractsRounded;
-        }
         $contractsStringAbs = Precise::string_abs($contractsString);
+        if ($contractsString === null) {
+            $entryNotional = Precise::string_mul(Precise::string_mul($leverageString, $initialMarginString), $entryPriceString);
+            $contractsString = Precise::string_div($entryNotional, $market['contractSize']);
+            $contractsStringAbs = Precise::string_div(Precise::string_add($contractsString, '0.5'), '1', 0);
+        }
         $contracts = $this->parse_number($contractsStringAbs);
         $leverageBracket = $this->options['leverageBrackets'][$symbol];
         $maintenanceMarginPercentageString = null;
@@ -3267,6 +3273,7 @@ class binance extends Exchange {
         $marginRatio = null;
         $side = null;
         $percentage = null;
+        $liquidationPriceStringRaw = null;
         $liquidationPrice = null;
         if ($notionalFloat === 0.0) {
             $entryPrice = null;
@@ -3292,22 +3299,39 @@ class binance extends Exchange {
                 }
                 $leftSide = Precise::string_div($walletBalance, Precise::string_mul($contractsStringAbs, $onePlusMaintenanceMarginPercentageString));
                 $rightSide = Precise::string_div($entryPriceSignString, $onePlusMaintenanceMarginPercentageString);
-                $pricePrecision = $market['precision']['price'];
-                $pricePrecisionPlusOne = $pricePrecision + 1;
-                $pricePrecisionPlusOneString = (string) $pricePrecisionPlusOne;
-                // round half up
-                $rounder = new Precise ('5e-' . $pricePrecisionPlusOneString);
-                $rounderString = (string) $rounder;
                 $liquidationPriceStringRaw = Precise::string_add($leftSide, $rightSide);
-                $liquidationPriceRoundedString = Precise::string_add($rounderString, $liquidationPriceStringRaw);
-                $truncatedLiquidationPrice = Precise::string_div($liquidationPriceRoundedString, '1', $pricePrecision);
-                if ($truncatedLiquidationPrice[0] === '-') {
-                    // user cannot be liquidated
-                    // since he has more $collateral than the size of the $position
-                    $truncatedLiquidationPrice = null;
+            } else {
+                // calculate liquidation price
+                //
+                // $liquidationPrice = ($contracts * contractSize(±1 - mmp)) / (±1/entryPrice * $contracts * contractSize - $walletBalance)
+                //
+                $onePlusMaintenanceMarginPercentageString = null;
+                $entryPriceSignString = $entryPriceString;
+                if ($side === 'short') {
+                    $onePlusMaintenanceMarginPercentageString = Precise::string_sub('1', $maintenanceMarginPercentageString);
+                } else {
+                    $onePlusMaintenanceMarginPercentageString = Precise::string_sub('-1', $maintenanceMarginPercentageString);
+                    $entryPriceSignString = Precise::string_mul('-1', $entryPriceSignString);
                 }
-                $liquidationPrice = $this->parse_number($truncatedLiquidationPrice);
+                $size = Precise::string_mul($contractsStringAbs, $market['contractSize']);
+                $leftSide = Precise::string_mul($size, $onePlusMaintenanceMarginPercentageString);
+                $rightSide = Precise::string_sub(Precise::string_mul(Precise::string_div('1', $entryPriceSignString), $size), $walletBalance);
+                $liquidationPriceStringRaw = Precise::string_div($leftSide, $rightSide);
             }
+            $pricePrecision = $market['precision']['price'];
+            $pricePrecisionPlusOne = $pricePrecision + 1;
+            $pricePrecisionPlusOneString = (string) $pricePrecisionPlusOne;
+            // round half up
+            $rounder = new Precise ('5e-' . $pricePrecisionPlusOneString);
+            $rounderString = (string) $rounder;
+            $liquidationPriceRoundedString = Precise::string_add($rounderString, $liquidationPriceStringRaw);
+            $truncatedLiquidationPrice = Precise::string_div($liquidationPriceRoundedString, '1', $pricePrecision);
+            if ($truncatedLiquidationPrice[0] === '-') {
+                // user cannot be liquidated
+                // since he has more $collateral than the $size of the $position
+                $truncatedLiquidationPrice = null;
+            }
+            $liquidationPrice = $this->parse_number($truncatedLiquidationPrice);
         }
         return array(
             'info' => $position,
@@ -3505,6 +3529,141 @@ class binance extends Exchange {
         $account = $this->$method ($query);
         $result = $this->parse_account_positions ($account);
         return $this->filter_by_array($result, 'symbol', $symbols, false);
+    }
+
+    public function fetch_isolated_positions($symbol = null, $params = array ()) {
+        // only supported in usdm futures
+        $this->load_markets();
+        $this->load_leverage_brackets();
+        $request = array();
+        $market = null;
+        $method = null;
+        $defaultType = 'future';
+        if ($symbol !== null) {
+            $market = $this->market($symbol);
+            $request['symbol'] = $market['id'];
+            if ($market['linear']) {
+                $defaultType = 'future';
+            } else if ($market['inverse']) {
+                $defaultType = 'delivery';
+            } else {
+                throw NotSupported ($this->id . ' fetchIsolatedPositions() supports linear and inverse contracts only');
+            }
+        }
+        $defaultType = $this->safe_string_2($this->options, 'fetchIsolatedPositions', 'defaultType', $defaultType);
+        $type = $this->safe_string($params, 'type', $defaultType);
+        $params = $this->omit($params, 'type');
+        if (($type === 'future') || ($type === 'linear')) {
+            $method = 'fapiPrivateGetPositionRisk';
+        } else if (($type === 'delivery') || ($type === 'inverse')) {
+            $method = 'dapiPrivateGetPositionRisk';
+        } else {
+            throw NotSupported ($this->id . ' fetchIsolatedPositions() supports linear and inverse contracts only');
+        }
+        $response = $this->$method (array_merge($request, $params));
+        if ($symbol === null) {
+            $result = array();
+            for ($i = 0; $i < count($response); $i++) {
+                $parsed = $this->parse_position_risk ($response[$i], $market);
+                if ($parsed['marginType'] === 'isolated') {
+                    $result[] = $parsed;
+                }
+            }
+            return $result;
+        } else {
+            return $this->parse_position_risk ($this->safe_value($response, 0), $market);
+        }
+    }
+
+    public function fetch_funding_history($symbol = null, $since = null, $limit = null, $params = array ()) {
+        $this->load_markets();
+        $market = null;
+        $method = null;
+        $defaultType = 'future';
+        $request = array(
+            'incomeType' => 'FUNDING_FEE', // "TRANSFER"，"WELCOME_BONUS", "REALIZED_PNL"，"FUNDING_FEE", "COMMISSION" and "INSURANCE_CLEAR"
+        );
+        if ($symbol !== null) {
+            $market = $this->market($symbol);
+            $request['symbol'] = $market['id'];
+            if ($market['linear']) {
+                $defaultType = 'future';
+            } else if ($market['inverse']) {
+                $defaultType = 'delivery';
+            } else {
+                throw NotSupported ($this->id . ' fetchFundingHistory() supports linear and inverse contracts only');
+            }
+        }
+        if ($since !== null) {
+            $request['startTime'] = $since;
+        }
+        if ($limit !== null) {
+            $request['limit'] = $limit;
+        }
+        $defaultType = $this->safe_string_2($this->options, 'fetchFundingHistory', 'defaultType', $defaultType);
+        $type = $this->safe_string($params, 'type', $defaultType);
+        $params = $this->omit($params, 'type');
+        if (($type === 'future') || ($type === 'linear')) {
+            $method = 'fapiPrivateGetIncome';
+        } else if (($type === 'delivery') || ($type === 'inverse')) {
+            $method = 'dapiPrivateGetIncome';
+        } else {
+            throw NotSupported ($this->id . ' fetchFundingHistory() supports linear and inverse contracts only');
+        }
+        $response = $this->$method (array_merge($request, $params));
+        return $this->parse_incomes ($response, $market, $since, $limit);
+    }
+
+    public function set_leverage($symbol, $leverage, $params = array ()) {
+        // WARNING => THIS WILL INCREASE LIQUIDATION PRICE FOR OPEN ISOLATED LONG POSITIONS
+        // AND DECREASE LIQUIDATION PRICE FOR OPEN ISOLATED SHORT POSITIONS
+        if (($leverage < 1) || ($leverage > 125)) {
+            throw new BadRequest($this->id . ' $leverage should be between 1 and 125');
+        }
+        $this->load_markets();
+        $market = $this->market($symbol);
+        $method = null;
+        if ($market['linear']) {
+            $method = 'fapiPrivatePostLeverage';
+        } else if ($market['inverse']) {
+            $method = 'dapiPrivatePostLeverage';
+        } else {
+            throw NotSupported ($this->id . ' setLeverage() supports linear and inverse contracts only');
+        }
+        $request = array(
+            'symbol' => $market['id'],
+            'leverage' => $leverage,
+        );
+        return $this->$method (array_merge($request, $params));
+    }
+
+    public function set_margin_mode($symbol, $marginType, $params = array ()) {
+        //
+        // array( "code" => -4048 , "msg" => "Margin type cannot be changed if there exists position." )
+        //
+        // or
+        //
+        // array( "code" => 200, "msg" => "success" )
+        //
+        $marginType = strtoupper($marginType);
+        if (($marginType !== 'ISOLATED') && ($marginType !== 'CROSSED')) {
+            throw new BadRequest($this->id . ' $marginType must be either isolated or crossed');
+        }
+        $this->load_markets();
+        $market = $this->market($symbol);
+        $method = null;
+        if ($market['linear']) {
+            $method = 'fapiPrivatePostMarginType';
+        } else if ($market['inverse']) {
+            $method = 'dapiPrivatePostMarginType';
+        } else {
+            throw NotSupported ($this->id . ' setMarginMode() supports linear and inverse contracts only');
+        }
+        $request = array(
+            'symbol' => $market['id'],
+            'marginType' => $marginType,
+        );
+        return $this->$method (array_merge($request, $params));
     }
 
     public function sign($path, $api = 'public', $method = 'GET', $params = array (), $headers = null, $body = null) {

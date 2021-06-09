@@ -189,7 +189,8 @@ class binancecoinm extends binance {
         $market = null;
         if ($symbol !== null) {
             $market = $this->market($symbol);
-            $request['symbol'] = $market['id'];
+            // not the unified id here
+            $request['pair'] = $market['info']['pair'];
         }
         $response = $this->dapiPrivateGetPositionRisk (array_merge($request, $params));
         if ($symbol === null) {
@@ -242,7 +243,7 @@ class binancecoinm extends binance {
         return $this->dapiPrivatePostLeverage (array_merge($request, $params));
     }
 
-    public function set_mode($symbol, $marginType, $params = array ()) {
+    public function set_margin_mode($symbol, $marginType, $params = array ()) {
         //
         // array( "code" => -4048 , "msg" => "Margin type cannot be changed if there exists position." )
         //
