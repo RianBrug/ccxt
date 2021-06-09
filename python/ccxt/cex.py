@@ -161,7 +161,7 @@ class cex(Exchange):
                 },
             },
             'options': {
-                'fetchOHLCVWarning': True,
+                'fetchOHLCVWarning': False,
                 'createMarketBuyOrderRequiresPrice': True,
                 'order': {
                     'status': {

@@ -29,8 +29,20 @@ minute = 60 * msec
 hold = 30
 
 exchange_name = ('gateio')
+# sc_pair = 'FEIUSDT';
+# sc_pair = 'USDCUSDT';
 sc_pair = 'BUSDUSDT';
+# sc_pair_with_slash = 'FEI/USDT';
+# sc_pair_with_slash = 'USDC/USDT';
 sc_pair_with_slash = 'BUSD/USDT';
+
+# exchange_name = ('cex')
+# sc_pair = 'GUSDUSD';
+# sc_pair_with_slash = 'GUSD/USD';
+
+# exchange_name = ('gateio')
+# sc_pair = 'BUSDUSDT';
+# sc_pair_with_slash = 'BUSD/USDT';
 
 # exchange_name = ('huobipro')
 # sc_pair = 'USDTHUSD';
@@ -68,7 +80,7 @@ sc_pair_with_slash = 'BUSD/USDT';
 # sc_pair = 'TUSDUSDT';
 # sc_pair_with_slash = 'TUSD/USDT';
 
-date1 = '2021-06-03 00:00:00'
+date1 = '2021-04-22 00:00:00'
 date2 = '2021-06-04 00:00:00'
 
 path = '/home/ribs/Documents/ccxt/python/csv_exports'
@@ -88,6 +100,8 @@ exchange = ccxt.gateio({
     'enableRateLimit': True,
     # 'verbose': True,
 })
+
+print(exchange.timeframes)
 
 # -----------------------------------------------------------------------------
 
@@ -115,12 +129,13 @@ while from_timestamp < now:
         print(exchange.milliseconds(), 'Fetching candles starting from', exchange.iso8601(from_timestamp))
         ohlcvs = exchange.fetch_ohlcv(sc_pair_with_slash, '1m', from_timestamp)
         print(exchange.milliseconds(), 'Fetched', len(ohlcvs), 'candles')
-        first = ohlcvs[0][0]
-        last = ohlcvs[-1][0]
-        print('First candle epoch', first, exchange.iso8601(first))
-        print('Last candle epoch', last, exchange.iso8601(last))
-        from_timestamp += len(ohlcvs) * minute
-        data += ohlcvs
+        if(len(ohlcvs) != 0):
+            first = ohlcvs[0][0]
+            last = ohlcvs[-1][0]
+            print('First candle epoch', first, exchange.iso8601(first))
+            print('Last candle epoch', last, exchange.iso8601(last))
+            from_timestamp += len(ohlcvs) * minute
+            data += ohlcvs
 
     except (ccxt.ExchangeError, ccxt.AuthenticationError, ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as error:
 
