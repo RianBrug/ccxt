@@ -8,7 +8,6 @@ namespace ccxt;
 use Exception; // a common import
 use \ccxt\ArgumentsRequired;
 use \ccxt\BadRequest;
-use \ccxt\BadSymbol;
 use \ccxt\OrderNotFound;
 
 class aax extends Exchange {
@@ -23,6 +22,7 @@ class aax extends Exchange {
             'version' => 'v2',
             'hostname' => 'aaxpro.com', // aax.com
             'certified' => true,
+            'pro' => true,
             'has' => array(
                 'cancelAllOrders' => true,
                 'cancelOrder' => true,
@@ -479,14 +479,6 @@ class aax extends Exchange {
             'quoteVolume' => $quoteVolume,
             'info' => $ticker,
         );
-    }
-
-    public function fetch_ticker($symbol, $params = array ()) {
-        $tickers = $this->fetch_tickers(null, $params);
-        if (is_array($tickers) && array_key_exists($symbol, $tickers)) {
-            return $tickers[$symbol];
-        }
-        throw new BadSymbol($this->id . ' fetchTicker() $symbol ' . $symbol . ' ticker not found');
     }
 
     public function fetch_tickers($symbols = null, $params = array ()) {

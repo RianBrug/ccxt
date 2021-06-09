@@ -20,6 +20,7 @@ module.exports = class aax extends Exchange {
             'version': 'v2',
             'hostname': 'aaxpro.com', // aax.com
             'certified': true,
+            'pro': true,
             'has': {
                 'cancelAllOrders': true,
                 'cancelOrder': true,
@@ -476,14 +477,6 @@ module.exports = class aax extends Exchange {
             'quoteVolume': quoteVolume,
             'info': ticker,
         };
-    }
-
-    async fetchTicker (symbol, params = {}) {
-        const tickers = await this.fetchTickers (undefined, params);
-        if (symbol in tickers) {
-            return tickers[symbol];
-        }
-        throw new BadSymbol (this.id + ' fetchTicker() symbol ' + symbol + ' ticker not found');
     }
 
     async fetchTickers (symbols = undefined, params = {}) {
