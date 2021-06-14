@@ -6,3 +6,6 @@ pip3 install ipython
 pip3 install sqlalchemy
 pip3 install gspread oauth2client
 pip3 install chart-studio
+
+
+pip3 install 'python-language-server[all]'
