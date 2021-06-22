@@ -36,10 +36,10 @@ hold = 30
 exchange_name = ('gateio')
 # sc_pair = 'FEIUSDT';
 # sc_pair = 'USDCUSDT';
-sc_pair = 'BUSDUSDT';
+sc_pair = 'FRAXUSDT';
 # sc_pair_with_slash = 'FEI/USDT';
 # sc_pair_with_slash = 'USDC/USDT';
-sc_pair_with_slash = 'BUSD/USDT';
+sc_pair_with_slash = 'FRAX/USDT';
 
 # exchange_name = ('cex')
 # sc_pair = 'GUSDUSD';
@@ -167,6 +167,7 @@ for candle in data:
     low_data.append(candle[3])
     close_data.append(candle[4])
     volume_data.append(candle[5])
+    import pdb; pdb.set_trace()
 
 # turn api result calls to dataframe, excluding, shall we consider candles with no volume?
 df = DataFrame(data, columns=['timestamp','open','high','low','close','volume'])
